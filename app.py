@@ -633,7 +633,7 @@ if df is not None:
             
             st.markdown("<br><h4 style='font-size: 15px; color: #38bdf8; margin-bottom: 15px; border-left: 4px solid #38bdf8; padding-left: 10px;'>2. 지사별 성과 분석</h4>", unsafe_allow_html=True)
             
-            # --- New: Branch-wise Bar Chart ---
+            # --- Branch-wise Bar Chart ---
             df_branch_summary = df.groupby(['branch', 'activity_status']).size().reset_index(name='count')
             fig_branch = px.bar(
                 df_branch_summary,
@@ -649,7 +649,31 @@ if df is not None:
                 height=350, margin=dict(l=20, r=20, t=20, b=20),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
-            st.plotly_chart(fig_branch, use_container_width=True)
+            
+            col_b1, col_b2 = st.columns([1, 1])
+            with col_b1:
+                st.markdown("<p style='font-size: 13px; color: #94a3b8; margin-bottom: 5px; text-align:center;'>지사별 활동 건수 (Status별)</p>", unsafe_allow_html=True)
+                st.plotly_chart(fig_branch, use_container_width=True)
+            
+            with col_b2:
+                st.markdown("<p style='font-size: 13px; color: #94a3b8; margin-bottom: 5px; text-align:center;'>지사별 활동 완료율 (%)</p>", unsafe_allow_html=True)
+                # Calculate completion rate per branch
+                branch_rates = df.groupby('branch').apply(lambda x: (len(x[x['activity_status'] != '미접수']) / len(x) * 100)).reset_index(name='rate')
+                fig_rate = px.bar(
+                    branch_rates,
+                    x='branch',
+                    y='rate',
+                    color='rate',
+                    color_continuous_scale=['#1e293b', '#38bdf8'],
+                    labels={'branch': '지사', 'rate': '완료율 (%)'}
+                )
+                fig_rate.update_layout(
+                    plot_bgcolor=plotly_bg, paper_bgcolor=plotly_bg, font=plotly_font,
+                    height=350, margin=dict(l=20, r=20, t=20, b=20),
+                    coloraxis_showscale=False
+                )
+                fig_rate.update_yaxes(range=[0, 100], gridcolor='rgba(255,255,255,0.1)', title='')
+                st.plotly_chart(fig_rate, use_container_width=True)
 
             # Keep the pivot table as well for numerical details
             st.markdown("<p style='font-size: 13px; color: #94a3b8; margin-bottom: 10px;'>지사별 대상군 세부 현황</p>", unsafe_allow_html=True)
