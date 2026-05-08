@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from streamlit_folium import st_folium
+import plotly.express as px
+import plotly.graph_objects as go
 import io
 import os
 from core.data_handler import load_data
@@ -95,20 +97,57 @@ section[data-testid="stSidebar"] div[data-testid="column"] {{
 
 .metric-card {{ background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 20px; text-align: center; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }}
 .metric-value {{ font-size: 2rem; font-weight: 800; color: {t['accent']}; }}
-.metric-label {{ font-size: 0.9rem; color: #cbd5e1; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }}
-.download-btn-container {{ margin-top: 20px; }}
+.metric-label { font-size: 0.9rem; color: #cbd5e1; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.download-btn-container { margin-top: 20px; }
+
+/* Dashboard Tabs Visibility Enhancement */
+div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    padding: 6px;
+    gap: 8px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+div[data-testid="stTabs"] [data-baseweb="tab"] {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    border-radius: 12px;
+    padding: 16px 0 !important;
+    background-color: transparent;
+    border: 1px solid transparent !important;
+    color: #94a3b8 !important;
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    transition: all 0.3s ease;
+}
+div[data-testid="stTabs"] [aria-selected="true"] {
+    background: linear-gradient(135deg, {t['btn1']}, {t['btn2']}) !important;
+    color: white !important;
+    box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # --- Session State ---
-if 'processed_data' not in st.session_state:
-    st.session_state.processed_data = None
+def load_and_set_data():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     db_path = os.path.join(current_dir, 'db.csv')
     if os.path.exists(db_path):
         result = load_data(db_path)
         if isinstance(result, pd.DataFrame):
             st.session_state.processed_data = result
+        else:
+            st.session_state.processed_data = None
+    else:
+        st.session_state.processed_data = None
+
+if 'processed_data' not in st.session_state:
+    load_and_set_data()
+elif st.session_state.processed_data is not None and 'activity_status' not in st.session_state.processed_data.columns:
+    load_and_set_data()
 
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
@@ -397,52 +436,259 @@ if df is not None:
         
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Map Toolbar with Route Toggle
-    st.markdown("""
-    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px; padding: 10px 15px; background: rgba(56, 189, 248, 0.05); border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">
-        <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 20px;">🗺️</span> 스마트 방문 관제
-        </h3>
-    </div>
-    """, unsafe_allow_html=True)
+    tab_summary, tab_map, tab_dashboard = st.tabs(["📈 요약 대시보드", "🗺️ 스마트 현장 지도", "📊 종합 활동 대시보드"])
     
-    col_toggle, col_style, col_info = st.columns([1.2, 1.2, 1.6])
-    with col_toggle:
-        toggle_label = "🚗 최적 방문 경로 자동 생성" if st.session_state.role == 'admin' else "🚗 내 구역 방문 경로 자동 생성"
-        enable_routing = st.toggle(toggle_label, value=False)
-        start_index = 0
-    with col_style:
-        map_style_options = {
-            "🗺️ 상세 지도 (건물/도로/상호)": "OpenStreetMap",
-            "🌙 다크 모드 (심플/야간)": "CartoDB dark_matter",
-            "☀️ 라이트 모드 (심플/주간)": "CartoDB positron"
-        }
-        selected_style_label = st.selectbox("지도 테마", list(map_style_options.keys()), label_visibility="collapsed")
-        selected_tile = map_style_options[selected_style_label]
+    with tab_summary:
+        st.markdown("""
+        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding: 10px 15px; background: rgba(56, 189, 248, 0.05); border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">
+            <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">📈</span> 전사 활동 현황 요약
+            </h3>
+        </div>
+        """, unsafe_allow_html=True)
         
-    with col_info:
-        if enable_routing:
-            st.info("가장 가까운 10곳의 최단 방문 경로를 계산하여 지도에 표시합니다.")
-    
-    if len(df) == 0:
-        st.warning("선택하신 조건(또는 구역)에 해당하는 데이터가 없습니다.")
-    else:
-        if enable_routing:
-            m, total_dist = create_route_map(df, start_index=start_index, max_stops=10, tiles=selected_tile)
-            st.success(f"🚗 경로 생성 완료! 총 이동거리: 약 **{total_dist:.1f} km**")
+        if len(df) == 0:
+            st.warning("표시할 데이터가 없습니다.")
         else:
-            m = create_map(df, tiles=selected_tile)
+            # Calculate Progress
+            total = len(df)
+            completed = len(df[df['activity_status'] != '미접수'])
+            progress_pct = (completed / total * 100) if total > 0 else 0
+            
+            sum_col1, sum_col2 = st.columns([1, 1.5])
+            
+            with sum_col1:
+                # Progress Gauge/Donut
+                fig_prog = go.Figure(go.Pie(
+                    values=[completed, total-completed],
+                    labels=['진행완료', '미진행'],
+                    hole=.7,
+                    marker_colors=['#38bdf8', 'rgba(255,255,255,0.05)'],
+                    textinfo='none'
+                ))
+                fig_prog.update_layout(
+                    showlegend=False,
+                    height=250,
+                    margin=dict(l=20, r=20, t=20, b=20),
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    annotations=[dict(text=f"{progress_pct:.1f}%", x=0.5, y=0.5, font_size=32, font_family="Pretendard", font_color="#38bdf8", showarrow=False)]
+                )
+                st.plotly_chart(fig_prog, use_container_width=True)
+                st.markdown(f"<div style='text-align:center; color:#94a3b8; font-size:14px;'>전체 목표 대비 진행률</div>", unsafe_allow_html=True)
+                
+            with sum_col2:
+                # Top Performance Branches
+                branch_perf = df.groupby('branch').apply(lambda x: (len(x[x['activity_status'] != '미접수']) / len(x) * 100)).reset_index(name='pct')
+                branch_perf = branch_perf.sort_values('pct', ascending=False)
+                
+                fig_branch_rank = px.bar(
+                    branch_perf,
+                    x='pct',
+                    y='branch',
+                    orientation='h',
+                    color='pct',
+                    color_continuous_scale=['#1e293b', '#38bdf8'],
+                    labels={'pct': '진행률 (%)', 'branch': '지사'}
+                )
+                fig_branch_rank.update_layout(
+                    height=300,
+                    margin=dict(l=20, r=20, t=20, b=20),
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(family="Pretendard", color="#cbd5e1"),
+                    coloraxis_showscale=False
+                )
+                fig_branch_rank.update_xaxes(range=[0, 100], gridcolor='rgba(255,255,255,0.05)')
+                st.plotly_chart(fig_branch_rank, use_container_width=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Target Type-wise Summary
+            type_sum_cols = st.columns(3)
+            for idx, t_type in enumerate(["SP", "SG", "SE"]):
+                t_df = df[df['target_type'] == t_type]
+                if len(t_df) > 0:
+                    t_total = len(t_df)
+                    t_comp = len(t_df[t_df['activity_status'] != '미접수'])
+                    t_pct = (t_comp / t_total * 100)
+                    t_color = '#ef4444' if t_type == 'SP' else '#f59e0b' if t_type == 'SG' else '#3b82f6'
+                    
+                    with type_sum_cols[idx]:
+                        st.markdown(f"""
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 15px; text-align: center;">
+                            <div style="font-size: 12px; color: #94a3b8; margin-bottom: 5px;">{t_type} 대상 진행률</div>
+                            <div style="font-size: 24px; font-weight: 800; color: {t_color};">{t_pct:.1f}%</div>
+                            <div style="font-size: 11px; color: #64748b;">({t_comp} / {t_total} 건)</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+    
+    with tab_map:
+        # Map Toolbar with Route Toggle
+        st.markdown("""
+        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px; padding: 10px 15px; background: rgba(56, 189, 248, 0.05); border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">
+            <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">🗺️</span> 스마트 방문 관제
+            </h3>
+        </div>
+        """, unsafe_allow_html=True)
         
-        st_data = st_folium(m, width="100%", height=600)
+        col_toggle, col_style, col_info = st.columns([1.2, 1.2, 1.6])
+        with col_toggle:
+            toggle_label = "🚗 최적 방문 경로 자동 생성" if st.session_state.role == 'admin' else "🚗 내 구역 방문 경로 자동 생성"
+            enable_routing = st.toggle(toggle_label, value=False)
+            start_index = 0
+        with col_style:
+            map_style_options = {
+                "🌙 다크 모드 (심플/야간)": "CartoDB dark_matter",
+                "🗺️ 상세 지도 (건물/도로/상호)": "OpenStreetMap",
+                "☀️ 라이트 모드 (심플/주간)": "CartoDB positron"
+            }
+            selected_style_label = st.selectbox("지도 테마", list(map_style_options.keys()), label_visibility="collapsed")
+            selected_tile = map_style_options[selected_style_label]
+            
+        with col_info:
+            if enable_routing:
+                st.info("가장 가까운 10곳의 최단 방문 경로를 계산하여 지도에 표시합니다.")
         
-        st.markdown("<div class='download-btn-container'>", unsafe_allow_html=True)
-        html_data = export_map_to_html(m)
-        st.download_button(
-            label="📥 공유용 HTML 파일 다운로드",
-            data=html_data,
-            file_name="2Q_유지이탈_지도공유.html",
-            mime="text/html"
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
+        if len(df) == 0:
+            st.warning("선택하신 조건(또는 구역)에 해당하는 데이터가 없습니다.")
+        else:
+            if enable_routing:
+                m, total_dist = create_route_map(df, start_index=start_index, max_stops=10, tiles=selected_tile)
+                st.success(f"🚗 경로 생성 완료! 총 이동거리: 약 **{total_dist:.1f} km**")
+            else:
+                m = create_map(df, tiles=selected_tile)
+            
+            # Map Container Styling for a cleaner look
+            st.markdown("<style>#folium-map-container { border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }</style>", unsafe_allow_html=True)
+            st.markdown("<div id='folium-map-container'>", unsafe_allow_html=True)
+            st_data = st_folium(m, width="100%", height=750, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            st.markdown("<div class='download-btn-container'>", unsafe_allow_html=True)
+            html_data = export_map_to_html(m)
+            st.download_button(
+                label="📥 공유용 HTML 파일 다운로드",
+                data=html_data,
+                file_name="2Q_유지이탈_지도공유.html",
+                mime="text/html"
+            )
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    with tab_dashboard:
+        st.markdown("""
+        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px; padding: 10px 15px; background: rgba(56, 189, 248, 0.05); border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">
+            <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">📊</span> 유지고객 이탈 방지 활동 현황
+            </h3>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if len(df) == 0:
+            st.warning("표시할 데이터가 없습니다.")
+        else:
+            # Common plotly layout adjustments for Data Intel PRO dark theme
+            plotly_bg = 'rgba(0,0,0,0)'
+            plotly_font = dict(family="Pretendard", size=12, color="#cbd5e1")
+            
+            # --- Top Chart: Target Type vs Activity Status ---
+            # Group by target_type and activity_status
+            if 'activity_status' not in df.columns:
+                df['activity_status'] = '미접수' # Fallback if not loaded properly
+            
+            # Custom sorting for Target Type
+            type_order = ["SP", "SE", "SG"]
+            df_type_summary = df.groupby(['target_type', 'activity_status']).size().reset_index(name='count')
+            
+            # Map colors for activity_status
+            status_colors = {
+                '방문상담': '#38bdf8',
+                '재계약': '#34d399',
+                '미접수': '#94a3b8'
+            }
+            
+            fig_top = px.bar(
+                df_type_summary,
+                x='target_type',
+                y='count',
+                color='activity_status',
+                barmode='group',
+                category_orders={'target_type': type_order},
+                color_discrete_map=status_colors,
+                labels={'target_type': '활동대상구분', 'count': '건수', 'activity_status': '활동상태'}
+            )
+            fig_top.update_layout(
+                plot_bgcolor=plotly_bg, paper_bgcolor=plotly_bg, font=plotly_font,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                margin=dict(l=20, r=20, t=40, b=20),
+                height=300
+            )
+            fig_top.update_yaxes(gridcolor='rgba(255,255,255,0.1)', title='')
+            fig_top.update_xaxes(title='')
+            
+            st.plotly_chart(fig_top, use_container_width=True)
+            
+            st.markdown("<hr style='border-color: rgba(255,255,255,0.1); margin: 30px 0;'>", unsafe_allow_html=True)
+            
+            # --- Middle Chart: Branch/Zone vs Activity Status ---
+            # Group by branch, zone, activity_status
+            df_bz_summary = df.groupby(['branch', 'zone', 'activity_status']).size().reset_index(name='count')
+            df_bz_summary['branch_zone'] = df_bz_summary['branch'] + " - " + df_bz_summary['zone']
+            
+            # Sort to keep the standard order
+            branch_order_dict = {b: i for i, b in enumerate(["중앙", "강북", "서대문", "고양", "의정부", "남양주", "강릉", "원주"])}
+            df_bz_summary['branch_order'] = df_bz_summary['branch'].map(lambda x: branch_order_dict.get(x, 99))
+            df_bz_summary = df_bz_summary.sort_values(['branch_order', 'zone'])
+            
+            fig_mid = px.bar(
+                df_bz_summary,
+                x='branch_zone',
+                y='count',
+                color='activity_status',
+                barmode='stack',
+                color_discrete_map=status_colors,
+                labels={'branch_zone': '지사 및 구역', 'count': '건수', 'activity_status': '활동상태'}
+            )
+            fig_mid.update_layout(
+                plot_bgcolor=plotly_bg, paper_bgcolor=plotly_bg, font=plotly_font,
+                showlegend=False,
+                margin=dict(l=20, r=20, t=20, b=80),
+                height=400,
+                xaxis_tickangle=-45
+            )
+            fig_mid.update_yaxes(gridcolor='rgba(255,255,255,0.1)', title='')
+            fig_mid.update_xaxes(title='')
+            
+            st.plotly_chart(fig_mid, use_container_width=True)
+            
+            st.markdown("<hr style='border-color: rgba(255,255,255,0.1); margin: 30px 0;'>", unsafe_allow_html=True)
+            
+            # --- Bottom: Detailed Table ---
+            st.markdown("""
+            <h4 style="margin: 0 0 15px 0; font-size: 15px; display: flex; align-items: center; gap: 8px; color: #38bdf8;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                세부내역
+            </h4>
+            """, unsafe_allow_html=True)
+            
+            display_cols = ['contract_no', 'service_no', 'branch', 'target_type', 'zone', 'name', 'address', 'activity_status']
+            if 'activity_detail' in df.columns:
+                display_cols.append('activity_detail')
+                
+            col_names = {
+                'contract_no': '계약번호', 'service_no': '서비스번호', 'branch': '지사',
+                'target_type': '활동대상구분', 'zone': '구역', 'name': '상호',
+                'address': '설치주소', 'activity_status': '활동유무(O/X)', 'activity_detail': '세부 활동내역'
+            }
+            
+            df_display = df[display_cols].rename(columns=col_names).copy()
+            
+            # Use st.dataframe for an interactive table
+            st.dataframe(
+                df_display,
+                use_container_width=True,
+                hide_index=True,
+                height=300
+            )
 else:
     st.info("데이터베이스 파일(db.csv)을 찾을 수 없습니다. 관리자에게 문의하세요.")

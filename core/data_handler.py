@@ -53,6 +53,8 @@ def load_data(file_path_or_buffer):
             'lng': next((c for c in cols if '경도' in c and '위치좌표' not in c), None),
             'contract_no': next((c for c in cols if '계약번호' in c), None),
             'service_no': next((c for c in cols if '서비스번호' in c), None),
+            'activity_status': next((c for c in cols if '활동유무' in c), None),
+            'activity_detail': next((c for c in cols if '세부 활동내역' in c or '세부활동내역' in c), None),
         }
         
         processed_data = []
@@ -99,8 +101,13 @@ def load_data(file_path_or_buffer):
                 'lat': float(lat),
                 'lng': float(lng),
                 'contract_no': safe_format(row[col_mappings['contract_no']]) if col_mappings['contract_no'] else '-',
-                'service_no': safe_format(row[col_mappings['service_no']]) if col_mappings['service_no'] else '-'
+                'service_no': safe_format(row[col_mappings['service_no']]) if col_mappings['service_no'] else '-',
+                'activity_status': str(row[col_mappings['activity_status']]).strip() if col_mappings['activity_status'] and pd.notna(row[col_mappings['activity_status']]) else '미접수',
+                'activity_detail': str(row[col_mappings['activity_detail']]).strip() if col_mappings['activity_detail'] and pd.notna(row[col_mappings['activity_detail']]) else '-'
             }
+            # Normalize activity status
+            if item['activity_status'].lower() in ['x', '미접수', '-', '']:
+                item['activity_status'] = '미접수'
             processed_data.append(item)
             
         return pd.DataFrame(processed_data)
