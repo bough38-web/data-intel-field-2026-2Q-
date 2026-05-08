@@ -579,9 +579,9 @@ if df is not None:
 
     with tab_dashboard:
         st.markdown("""
-        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px; padding: 10px 15px; background: rgba(56, 189, 248, 0.05); border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">
-            <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 20px;">📊</span> 유지고객 이탈 방지 활동 현황
+        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding: 12px 18px; background: rgba(56, 189, 248, 0.08); border-radius: 14px; border: 1px solid rgba(56, 189, 248, 0.2);">
+            <h3 style="margin: 0; font-size: 18px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 22px;">📊</span> 실시간 활동 지표 분석
             </h3>
         </div>
         """, unsafe_allow_html=True)
@@ -593,21 +593,19 @@ if df is not None:
             plotly_bg = 'rgba(0,0,0,0)'
             plotly_font = dict(family="Pretendard", size=12, color="#cbd5e1")
             
-            # --- Top Chart: Target Type vs Activity Status ---
-            # Group by target_type and activity_status
-            if 'activity_status' not in df.columns:
-                df['activity_status'] = '미접수' # Fallback if not loaded properly
-            
-            # Custom sorting for Target Type
-            type_order = ["SP", "SE", "SG"]
-            df_type_summary = df.groupby(['target_type', 'activity_status']).size().reset_index(name='count')
-            
-            # Map colors for activity_status
+            # Define status colors
             status_colors = {
                 '방문상담': '#38bdf8',
                 '재계약': '#34d399',
                 '미접수': '#94a3b8'
             }
+            
+            # --- Top Chart: Target Type vs Activity Status ---
+            if 'activity_status' not in df.columns:
+                df['activity_status'] = '미접수'
+            
+            df_type_summary = df.groupby(['target_type', 'activity_status']).size().reset_index(name='count')
+            type_order = ["SP", "SG", "SE"]
             
             fig_top = px.bar(
                 df_type_summary,
@@ -628,9 +626,37 @@ if df is not None:
             fig_top.update_yaxes(gridcolor='rgba(255,255,255,0.1)', title='')
             fig_top.update_xaxes(title='')
             
+            st.markdown("<h4 style='font-size: 14px; color: #38bdf8; margin-bottom: 15px;'>📉 대상군별 활동 진척도 (SP/SG/SE)</h4>", unsafe_allow_html=True)
             st.plotly_chart(fig_top, use_container_width=True)
             
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # --- New: Branch vs Target Type Matrix ---
+            st.markdown("<h4 style='font-size: 14px; color: #38bdf8; margin-bottom: 15px;'>🏛️ 지사별 활동 요약 (활동완료 건수)</h4>", unsafe_allow_html=True)
+            
+            # Create a pivot table for Branch vs Target Type
+            df['is_completed'] = df['activity_status'].apply(lambda x: 1 if x != '미접수' else 0)
+            pivot_df = df.pivot_table(
+                index='branch', 
+                columns='target_type', 
+                values='is_completed', 
+                aggfunc=['count', 'sum'],
+                fill_value=0
+            )
+            
+            # Rename columns for clarity
+            pivot_display = pd.DataFrame()
+            for t_type in ["SP", "SG", "SE"]:
+                if t_type in pivot_df['count'].columns:
+                    pivot_display[f'{t_type} (전체)'] = pivot_df['count'][t_type]
+                    pivot_display[f'{t_type} (완료)'] = pivot_df['sum'][t_type]
+                    pivot_display[f'{t_type} (%)'] = (pivot_df['sum'][t_type] / pivot_df['count'][t_type] * 100).round(1).astype(str) + '%'
+            
+            st.dataframe(pivot_display, use_container_width=True)
+            
             st.markdown("<hr style='border-color: rgba(255,255,255,0.1); margin: 30px 0;'>", unsafe_allow_html=True)
+            
+            st.markdown("<h4 style='font-size: 14px; color: #38bdf8; margin-bottom: 15px;'>📍 지사 및 구역별 상세 진행 현황</h4>", unsafe_allow_html=True)
             
             # --- Middle Chart: Branch/Zone vs Activity Status ---
             # Group by branch, zone, activity_status
