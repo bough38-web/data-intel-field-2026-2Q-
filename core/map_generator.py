@@ -18,7 +18,13 @@ def create_map(df, tiles='OpenStreetMap'):
         auto_start=False, 
         strings={"title": "내 위치 보기"},
         flyTo=True,
-        locateOptions={'maxZoom': 16}
+        drawCircle=True,
+        locateOptions={
+            'maxZoom': 16,
+            'enableHighAccuracy': True,
+            'timeout': 10000,
+            'maximumAge': 0
+        }
     ).add_to(m)
 
     # Add marker cluster
@@ -84,7 +90,13 @@ def create_route_map(df, start_index=0, max_stops=10, tiles='OpenStreetMap'):
         auto_start=False, 
         strings={"title": "내 위치 보기"},
         flyTo=True,
-        locateOptions={'maxZoom': 16}
+        drawCircle=True,
+        locateOptions={
+            'maxZoom': 16,
+            'enableHighAccuracy': True,
+            'timeout': 10000,
+            'maximumAge': 0
+        }
     ).add_to(m)
     
     unvisited = df.to_dict('records')
