@@ -61,43 +61,52 @@ def create_map(df, tiles='OpenStreetMap'):
     ).add_to(m)
     
     for _, row in df.iterrows():
-        # Premium Glowing Dot Icon based on target type
-        color = '#ef4444' if row['target_type'] == 'SP' else '#f59e0b' if row['target_type'] == 'SG' else '#3b82f6'
+        # Premium Colors
+        status_color = '#10b981' if row['activity_status'] != '미접수' else '#ef4444'
+        type_color = '#ef4444' if row['target_type'] == 'SP' else '#f59e0b' if row['target_type'] == 'SG' else '#3b82f6'
         
-        # Optimized Simple Dot Icon (Removed expensive box-shadow for speed)
+        # Enhanced Marker Icon: Glow effect + Clear border
         html_icon = f'''
-            <div style="background-color: {color}; border-radius: 50%; width: 12px; height: 12px; border: 2px solid white;"></div>
+            <div style="
+                background-color: {type_color}; 
+                border-radius: 50%; 
+                width: 14px; 
+                height: 14px; 
+                border: 2px solid #ffffff;
+                box-shadow: 0 0 8px {type_color}, 0 0 0 2px rgba(255,255,255,0.3);
+            "></div>
         '''
         icon = folium.DivIcon(html=html_icon, icon_anchor=(7, 7))
         
-        # Build Popup HTML
+        # Build Premium Popup HTML (Dark Theme matching Data Intel PRO)
         popup_html = f"""
-        <div style="font-family: 'Pretendard', sans-serif; width: 220px; padding: 5px;">
-            <div style="border-bottom: 2px solid #2563eb; padding-bottom: 5px; margin-bottom: 8px;">
-                <h4 style="margin: 0; color: #0f172a; font-size: 14px; font-weight: 800;">
-                    {row['name']}
-                </h4>
-                <span style="font-size: 11px; background-color: #e2e8f0; padding: 2px 6px; border-radius: 4px; color: #475569; font-weight: bold;">
-                    {row['target_type']}
-                </span>
+        <div style="font-family: 'Pretendard', sans-serif; width: 240px; padding: 0; background: #0f172a; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="background: linear-gradient(135deg, {type_color}dd, {type_color}); padding: 12px; color: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span style="font-size: 10px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">{row['target_type']}</span>
+                    <span style="font-size: 10px; font-weight: 600; color: white;">{row['branch']} 지사</span>
+                </div>
+                <h4 style="margin: 0; font-size: 15px; font-weight: 800; letter-spacing: -0.02em;">{row['name']}</h4>
             </div>
-            <div style="font-size: 12px; color: #334155; line-height: 1.6;">
-                <p style="margin: 3px 0;"><b>계약번호:</b> {row.get('contract_no', '-')}</p>
-                <p style="margin: 3px 0;"><b>서비스번호:</b> {row.get('service_no', '-')}</p>
-                <p style="margin: 3px 0;"><b>지사:</b> {row['branch']}</p>
-                <p style="margin: 3px 0;"><b>구역:</b> {row['zone']}</p>
-                <p style="margin: 3px 0;"><b>상태:</b> <span style="color: {'red' if row['status']=='미접수' else 'green'}; font-weight: bold;">{row['status']}</span></p>
-                <p style="margin: 3px 0;"><b>처리자:</b> {row['processor']}</p>
-                <div style="margin-top: 8px; padding: 6px; background-color: #f8fafc; border-radius: 4px; font-size: 11px; color: #64748b; border: 1px solid #e2e8f0;">
-                    {row['address']}
+            <div style="padding: 12px; background: #0f172a; color: #f8fafc;">
+                <div style="margin-bottom: 8px;">
+                    <p style="margin: 2px 0; font-size: 11px; color: #94a3b8;">서비스번호: <span style="color: #f1f5f9;">{row.get('service_no', '-')}</span></p>
+                    <p style="margin: 2px 0; font-size: 11px; color: #94a3b8;">구역: <span style="color: #f1f5f9;">{row['zone']}</span></p>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                    <span style="font-size: 12px; font-weight: 700; color: {status_color};">{row['activity_status']}</span>
+                    <span style="font-size: 10px; color: #64748b;">{row['processor']}</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 11px; line-height: 1.4; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+                    📍 {row['address']}
                 </div>
             </div>
         </div>
         """
         folium.Marker(
             location=[row['lat'], row['lng']],
-            popup=folium.Popup(popup_html, max_width=250),
-            tooltip=row['name'],
+            popup=folium.Popup(popup_html, max_width=300),
+            tooltip=folium.Tooltip(f"[{row['target_type']}] {row['name']}", permanent=False),
             icon=icon
         ).add_to(marker_cluster)
         
