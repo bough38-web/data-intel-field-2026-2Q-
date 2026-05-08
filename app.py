@@ -675,6 +675,23 @@ if df is not None:
                 fig_rate.update_yaxes(range=[0, 100], gridcolor='rgba(255,255,255,0.1)', title='')
                 st.plotly_chart(fig_rate, use_container_width=True)
 
+            # --- Branch vs Target Type Matrix Calculation ---
+            df['is_completed'] = df['activity_status'].apply(lambda x: 1 if x != '미접수' else 0)
+            pivot_df = df.pivot_table(
+                index='branch', 
+                columns='target_type', 
+                values='is_completed', 
+                aggfunc=['count', 'sum'],
+                fill_value=0
+            )
+            
+            pivot_display = pd.DataFrame()
+            for t_type in ["SP", "SG", "SE"]:
+                if t_type in pivot_df['count'].columns:
+                    pivot_display[f'{t_type} (전체)'] = pivot_df['count'][t_type]
+                    pivot_display[f'{t_type} (완료)'] = pivot_df['sum'][t_type]
+                    pivot_display[f'{t_type} (%)'] = (pivot_df['sum'][t_type] / pivot_df['count'][t_type] * 100).round(1).astype(str) + '%'
+
             # Keep the pivot table as well for numerical details
             st.markdown("<p style='font-size: 13px; color: #94a3b8; margin-bottom: 10px;'>지사별 대상군 세부 현황</p>", unsafe_allow_html=True)
             st.dataframe(pivot_display, use_container_width=True)
