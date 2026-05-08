@@ -626,37 +626,38 @@ if df is not None:
             fig_top.update_yaxes(gridcolor='rgba(255,255,255,0.1)', title='')
             fig_top.update_xaxes(title='')
             
-            st.markdown("<h4 style='font-size: 14px; color: #38bdf8; margin-bottom: 15px;'>📉 대상군별 활동 진척도 (SP/SG/SE)</h4>", unsafe_allow_html=True)
+            st.markdown("<h4 style='font-size: 15px; color: #38bdf8; margin-bottom: 15px; border-left: 4px solid #38bdf8; padding-left: 10px;'>1. 대상군별 활동 요약 (SP / SG / SE)</h4>", unsafe_allow_html=True)
             st.plotly_chart(fig_top, use_container_width=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # --- New: Branch vs Target Type Matrix ---
-            st.markdown("<h4 style='font-size: 14px; color: #38bdf8; margin-bottom: 15px;'>🏛️ 지사별 활동 요약 (활동완료 건수)</h4>", unsafe_allow_html=True)
+            st.markdown("<br><h4 style='font-size: 15px; color: #38bdf8; margin-bottom: 15px; border-left: 4px solid #38bdf8; padding-left: 10px;'>2. 지사별 성과 분석</h4>", unsafe_allow_html=True)
             
-            # Create a pivot table for Branch vs Target Type
-            df['is_completed'] = df['activity_status'].apply(lambda x: 1 if x != '미접수' else 0)
-            pivot_df = df.pivot_table(
-                index='branch', 
-                columns='target_type', 
-                values='is_completed', 
-                aggfunc=['count', 'sum'],
-                fill_value=0
+            # --- New: Branch-wise Bar Chart ---
+            df_branch_summary = df.groupby(['branch', 'activity_status']).size().reset_index(name='count')
+            fig_branch = px.bar(
+                df_branch_summary,
+                x='branch',
+                y='count',
+                color='activity_status',
+                barmode='group',
+                color_discrete_map=status_colors,
+                labels={'branch': '지사', 'count': '건수', 'activity_status': '활동상태'}
             )
-            
-            # Rename columns for clarity
-            pivot_display = pd.DataFrame()
-            for t_type in ["SP", "SG", "SE"]:
-                if t_type in pivot_df['count'].columns:
-                    pivot_display[f'{t_type} (전체)'] = pivot_df['count'][t_type]
-                    pivot_display[f'{t_type} (완료)'] = pivot_df['sum'][t_type]
-                    pivot_display[f'{t_type} (%)'] = (pivot_df['sum'][t_type] / pivot_df['count'][t_type] * 100).round(1).astype(str) + '%'
-            
+            fig_branch.update_layout(
+                plot_bgcolor=plotly_bg, paper_bgcolor=plotly_bg, font=plotly_font,
+                height=350, margin=dict(l=20, r=20, t=20, b=20),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
+            st.plotly_chart(fig_branch, use_container_width=True)
+
+            # Keep the pivot table as well for numerical details
+            st.markdown("<p style='font-size: 13px; color: #94a3b8; margin-bottom: 10px;'>지사별 대상군 세부 현황</p>", unsafe_allow_html=True)
             st.dataframe(pivot_display, use_container_width=True)
             
             st.markdown("<hr style='border-color: rgba(255,255,255,0.1); margin: 30px 0;'>", unsafe_allow_html=True)
             
-            st.markdown("<h4 style='font-size: 14px; color: #38bdf8; margin-bottom: 15px;'>📍 지사 및 구역별 상세 진행 현황</h4>", unsafe_allow_html=True)
+            st.markdown("<h4 style='font-size: 15px; color: #38bdf8; margin-bottom: 15px; border-left: 4px solid #38bdf8; padding-left: 10px;'>3. 구역별 상세 진행 현황</h4>", unsafe_allow_html=True)
             
             # --- Middle Chart: Branch/Zone vs Activity Status ---
             # Group by branch, zone, activity_status
