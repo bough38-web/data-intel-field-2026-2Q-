@@ -12,7 +12,28 @@ def create_map(df, tiles='OpenStreetMap'):
     # Center map around the average of provided coordinates
     center_lat = df['lat'].mean()
     center_lng = df['lng'].mean()
-    m = folium.Map(location=[center_lat, center_lng], zoom_start=11, tiles=tiles)
+    
+    # Custom Tiles Logic
+    if tiles == 'Vworld':
+        m = folium.Map(location=[center_lat, center_lng], zoom_start=11, tiles=None)
+        folium.TileLayer(
+            tiles='http://xdworld.vworld.kr:8080/2d/Base/service/{z}/{x}/{y}.png',
+            attr='Vworld',
+            name='Vworld 상세지도',
+            overlay=False,
+            control=True
+        ).add_to(m)
+    elif tiles == 'GoogleHybrid':
+        m = folium.Map(location=[center_lat, center_lng], zoom_start=11, tiles=None)
+        folium.TileLayer(
+            tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+            attr='Google',
+            name='Google 위성',
+            overlay=False,
+            control=True
+        ).add_to(m)
+    else:
+        m = folium.Map(location=[center_lat, center_lng], zoom_start=11, tiles=tiles)
     
     LocateControl(
         auto_start=False, 
@@ -27,8 +48,14 @@ def create_map(df, tiles='OpenStreetMap'):
         }
     ).add_to(m)
 
-    # Add marker cluster
-    marker_cluster = MarkerCluster().add_to(m)
+    # Add marker cluster with performance optimization
+    marker_cluster = MarkerCluster(
+        disableClusteringAtZoom=17,
+        spiderfyOnMaxZoom=True,
+        showCoverageOnHover=False,
+        zoomToBoundsOnClick=True,
+        animate=False # Disable animation for speed
+    ).add_to(m)
     
     for _, row in df.iterrows():
         # Premium Glowing Dot Icon based on target type
@@ -83,8 +110,27 @@ def create_route_map(df, start_index=0, max_stops=10, tiles='OpenStreetMap'):
     start_row = df.iloc[start_index]
     c_lat, c_lng = start_row['lat'], start_row['lng']
     
-    # Initialize Map
-    m = folium.Map(location=[c_lat, c_lng], zoom_start=13, tiles=tiles)
+    # Initialize Map with Custom Tiles Logic
+    if tiles == 'Vworld':
+        m = folium.Map(location=[c_lat, c_lng], zoom_start=13, tiles=None)
+        folium.TileLayer(
+            tiles='http://xdworld.vworld.kr:8080/2d/Base/service/{z}/{x}/{y}.png',
+            attr='Vworld',
+            name='Vworld 상세지도',
+            overlay=False,
+            control=True
+        ).add_to(m)
+    elif tiles == 'GoogleHybrid':
+        m = folium.Map(location=[c_lat, c_lng], zoom_start=13, tiles=None)
+        folium.TileLayer(
+            tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+            attr='Google',
+            name='Google 위성',
+            overlay=False,
+            control=True
+        ).add_to(m)
+    else:
+        m = folium.Map(location=[c_lat, c_lng], zoom_start=13, tiles=tiles)
     
     LocateControl(
         auto_start=False, 

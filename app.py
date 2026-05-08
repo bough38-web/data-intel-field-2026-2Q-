@@ -539,9 +539,10 @@ if df is not None:
             start_index = 0
         with col_style:
             map_style_options = {
+                "🏙️ 프리미엄 상세 지도 (Vworld)": "Vworld",
                 "🌙 다크 모드 (심플/야간)": "CartoDB dark_matter",
-                "🗺️ 상세 지도 (건물/도로/상호)": "OpenStreetMap",
-                "☀️ 라이트 모드 (심플/주간)": "CartoDB positron"
+                "🗺️ 표준 지도 (OSM)": "OpenStreetMap",
+                "🛰️ 위성 지도 (Hybrid)": "GoogleHybrid"
             }
             selected_style_label = st.selectbox("지도 테마", list(map_style_options.keys()), label_visibility="collapsed")
             selected_tile = map_style_options[selected_style_label]
@@ -560,9 +561,10 @@ if df is not None:
                 m = create_map(df, tiles=selected_tile)
             
             # Map Container Styling for a cleaner look
-            st.markdown("<style>#folium-map-container { border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }</style>", unsafe_allow_html=True)
+            st.markdown("<style>#folium-map-container { border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }</style>", unsafe_allow_html=True)
             st.markdown("<div id='folium-map-container'>", unsafe_allow_html=True)
-            st_data = st_folium(m, width="100%", height=750, use_container_width=True)
+            # Optimize st_folium performance by setting returned_objects=[]
+            st_data = st_folium(m, width="100%", height=750, use_container_width=True, returned_objects=[])
             st.markdown("</div>", unsafe_allow_html=True)
             
             st.markdown("<div class='download-btn-container'>", unsafe_allow_html=True)
