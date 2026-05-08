@@ -13,9 +13,9 @@ def create_map(df, tiles='OpenStreetMap'):
     center_lat = df['lat'].mean()
     center_lng = df['lng'].mean()
     
-    # Custom Tiles Logic
+    # Custom Tiles Logic with prefer_canvas=True for speed
     if tiles == 'Vworld':
-        m = folium.Map(location=[center_lat, center_lng], zoom_start=11, tiles=None)
+        m = folium.Map(location=[center_lat, center_lng], zoom_start=11, tiles=None, prefer_canvas=True)
         folium.TileLayer(
             tiles='http://xdworld.vworld.kr:8080/2d/Base/service/{z}/{x}/{y}.png',
             attr='Vworld',
@@ -24,7 +24,7 @@ def create_map(df, tiles='OpenStreetMap'):
             control=True
         ).add_to(m)
     elif tiles == 'GoogleHybrid':
-        m = folium.Map(location=[center_lat, center_lng], zoom_start=11, tiles=None)
+        m = folium.Map(location=[center_lat, center_lng], zoom_start=11, tiles=None, prefer_canvas=True)
         folium.TileLayer(
             tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
             attr='Google',
@@ -33,7 +33,7 @@ def create_map(df, tiles='OpenStreetMap'):
             control=True
         ).add_to(m)
     else:
-        m = folium.Map(location=[center_lat, center_lng], zoom_start=11, tiles=tiles)
+        m = folium.Map(location=[center_lat, center_lng], zoom_start=11, tiles=tiles, prefer_canvas=True)
     
     LocateControl(
         auto_start=False, 
@@ -48,21 +48,24 @@ def create_map(df, tiles='OpenStreetMap'):
         }
     ).add_to(m)
 
-    # Add marker cluster with performance optimization
+    # Add marker cluster with extreme performance optimization
     marker_cluster = MarkerCluster(
         disableClusteringAtZoom=17,
         spiderfyOnMaxZoom=True,
         showCoverageOnHover=False,
         zoomToBoundsOnClick=True,
-        animate=False # Disable animation for speed
+        animate=False,
+        chunkedLoading=True, # Load markers in chunks for UI responsiveness
+        removeOutsideVisibleBounds=True # Only render what's on screen
     ).add_to(m)
     
     for _, row in df.iterrows():
         # Premium Glowing Dot Icon based on target type
         color = '#ef4444' if row['target_type'] == 'SP' else '#f59e0b' if row['target_type'] == 'SG' else '#3b82f6'
         
+        # Optimized Simple Dot Icon (Removed expensive box-shadow for speed)
         html_icon = f'''
-            <div style="background-color: {color}; border-radius: 50%; width: 14px; height: 14px; border: 2px solid white; box-shadow: 0 0 10px {color};"></div>
+            <div style="background-color: {color}; border-radius: 50%; width: 12px; height: 12px; border: 2px solid white;"></div>
         '''
         icon = folium.DivIcon(html=html_icon, icon_anchor=(7, 7))
         
@@ -110,9 +113,9 @@ def create_route_map(df, start_index=0, max_stops=10, tiles='OpenStreetMap'):
     start_row = df.iloc[start_index]
     c_lat, c_lng = start_row['lat'], start_row['lng']
     
-    # Initialize Map with Custom Tiles Logic
+    # Initialize Map with Custom Tiles Logic (Speed optimized)
     if tiles == 'Vworld':
-        m = folium.Map(location=[c_lat, c_lng], zoom_start=13, tiles=None)
+        m = folium.Map(location=[c_lat, c_lng], zoom_start=13, tiles=None, prefer_canvas=True)
         folium.TileLayer(
             tiles='http://xdworld.vworld.kr:8080/2d/Base/service/{z}/{x}/{y}.png',
             attr='Vworld',
@@ -121,7 +124,7 @@ def create_route_map(df, start_index=0, max_stops=10, tiles='OpenStreetMap'):
             control=True
         ).add_to(m)
     elif tiles == 'GoogleHybrid':
-        m = folium.Map(location=[c_lat, c_lng], zoom_start=13, tiles=None)
+        m = folium.Map(location=[c_lat, c_lng], zoom_start=13, tiles=None, prefer_canvas=True)
         folium.TileLayer(
             tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
             attr='Google',
@@ -130,7 +133,7 @@ def create_route_map(df, start_index=0, max_stops=10, tiles='OpenStreetMap'):
             control=True
         ).add_to(m)
     else:
-        m = folium.Map(location=[c_lat, c_lng], zoom_start=13, tiles=tiles)
+        m = folium.Map(location=[c_lat, c_lng], zoom_start=13, tiles=tiles, prefer_canvas=True)
     
     LocateControl(
         auto_start=False, 
