@@ -97,19 +97,19 @@ section[data-testid="stSidebar"] div[data-testid="column"] {{
 
 .metric-card {{ background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 20px; text-align: center; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }}
 .metric-value {{ font-size: 2rem; font-weight: 800; color: {t['accent']}; }}
-.metric-label { font-size: 0.9rem; color: #cbd5e1; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-.download-btn-container { margin-top: 20px; }
+.metric-label {{ font-size: 0.9rem; color: #cbd5e1; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }}
+.download-btn-container {{ margin-top: 20px; }}
 
 /* Dashboard Tabs Visibility Enhancement */
-div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+div[data-testid="stTabs"] [data-baseweb="tab-list"] {{
     background: rgba(255, 255, 255, 0.03);
     border-radius: 16px;
     padding: 6px;
     gap: 8px;
     margin-bottom: 20px;
     border: 1px solid rgba(255, 255, 255, 0.05);
-}
-div[data-testid="stTabs"] [data-baseweb="tab"] {
+}}
+div[data-testid="stTabs"] [data-baseweb="tab"] {{
     flex: 1;
     display: flex;
     justify-content: center;
@@ -121,13 +121,13 @@ div[data-testid="stTabs"] [data-baseweb="tab"] {
     font-size: 18px !important;
     font-weight: 800 !important;
     transition: all 0.3s ease;
-}
-div[data-testid="stTabs"] [aria-selected="true"] {
+}}
+div[data-testid="stTabs"] [aria-selected="true"] {{
     background: linear-gradient(135deg, {t['btn1']}, {t['btn2']}) !important;
     color: white !important;
     box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.3) !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
+}}
 </style>
 """, unsafe_allow_html=True)
 
