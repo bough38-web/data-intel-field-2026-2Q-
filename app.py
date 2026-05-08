@@ -539,7 +539,7 @@ if df is not None:
             start_index = 0
         with col_style:
             map_style_options = {
-                "🏙️ 프리미엄 상세 지도 (Vworld)": "Vworld",
+                "🏙️ 프리미엄 상세 지도 (최고해상도)": "Vworld",
                 "🌙 다크 모드 (심플/야간)": "CartoDB dark_matter",
                 "🗺️ 표준 지도 (OSM)": "OpenStreetMap",
                 "🛰️ 위성 지도 (Hybrid)": "GoogleHybrid"

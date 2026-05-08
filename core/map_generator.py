@@ -16,10 +16,11 @@ def create_map(df, tiles='OpenStreetMap'):
     # Custom Tiles Logic with prefer_canvas=True for speed
     if tiles == 'Vworld':
         m = folium.Map(location=[center_lat, center_lng], zoom_start=11, tiles=None, prefer_canvas=True)
+        # Use Google Maps Street for "Naver-like" premium detail and high stability
         folium.TileLayer(
-            tiles='http://xdworld.vworld.kr:8080/2d/Base/service/{z}/{x}/{y}.png',
-            attr='Vworld',
-            name='Vworld 상세지도',
+            tiles='https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+            attr='Google',
+            name='Google 상세지도',
             overlay=False,
             control=True
         ).add_to(m)
@@ -116,10 +117,11 @@ def create_route_map(df, start_index=0, max_stops=10, tiles='OpenStreetMap'):
     # Initialize Map with Custom Tiles Logic (Speed optimized)
     if tiles == 'Vworld':
         m = folium.Map(location=[c_lat, c_lng], zoom_start=13, tiles=None, prefer_canvas=True)
+        # Use Google Maps Street for "Naver-like" premium detail and high stability
         folium.TileLayer(
-            tiles='http://xdworld.vworld.kr:8080/2d/Base/service/{z}/{x}/{y}.png',
-            attr='Vworld',
-            name='Vworld 상세지도',
+            tiles='https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+            attr='Google',
+            name='Google 상세지도',
             overlay=False,
             control=True
         ).add_to(m)
