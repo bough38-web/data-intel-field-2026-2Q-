@@ -14,7 +14,12 @@ def create_map(df, tiles='OpenStreetMap'):
     center_lng = df['lng'].mean()
     m = folium.Map(location=[center_lat, center_lng], zoom_start=11, tiles=tiles)
     
-    LocateControl(auto_start=False, strings={"title": "내 위치 보기"}).add_to(m)
+    LocateControl(
+        auto_start=False, 
+        strings={"title": "내 위치 보기"},
+        flyTo=True,
+        locateOptions={'maxZoom': 16}
+    ).add_to(m)
 
     # Add marker cluster
     marker_cluster = MarkerCluster().add_to(m)
@@ -75,7 +80,12 @@ def create_route_map(df, start_index=0, max_stops=10, tiles='OpenStreetMap'):
     # Initialize Map
     m = folium.Map(location=[c_lat, c_lng], zoom_start=13, tiles=tiles)
     
-    LocateControl(auto_start=False, strings={"title": "내 위치 보기"}).add_to(m)
+    LocateControl(
+        auto_start=False, 
+        strings={"title": "내 위치 보기"},
+        flyTo=True,
+        locateOptions={'maxZoom': 16}
+    ).add_to(m)
     
     unvisited = df.to_dict('records')
     route = []
