@@ -105,8 +105,12 @@ def load_data(file_path_or_buffer):
                 'activity_status': str(row[col_mappings['activity_status']]).strip() if col_mappings['activity_status'] and pd.notna(row[col_mappings['activity_status']]) else '미접수',
                 'activity_detail': str(row[col_mappings['activity_detail']]).strip() if col_mappings['activity_detail'] and pd.notna(row[col_mappings['activity_detail']]) else '-'
             }
+            # If target type is SE or SG and status is 방문상담, change it to 방문활동(표지판교체)
+            if item['target_type'] in ['SE', 'SG'] and item['status'] == '방문상담':
+                item['status'] = '방문활동(표지판교체)'
+
             # Override activity_status with status column for performance tracking
-            if item['status'] in ['방문상담', '재계약']:
+            if item['status'] in ['방문상담', '방문활동(표지판교체)', '재계약']:
                 item['activity_status'] = item['status']
             else:
                 item['activity_status'] = '미접수'

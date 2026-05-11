@@ -67,7 +67,7 @@ def create_map(df, tiles='OpenStreetMap'):
         
         current_status = str(row.get('status', ''))
         is_renewal = '재계약' in current_status
-        is_visit = '방문상담' in current_status
+        is_visit = '방문상담' in current_status or '방문활동(표지판교체)' in current_status
         
         if is_renewal:
             marker_border = '#a855f7' # Purple
@@ -76,7 +76,8 @@ def create_map(df, tiles='OpenStreetMap'):
         elif is_visit:
             marker_border = '#0ea5e9' # Sky blue
             box_shadow = f'0 0 12px {marker_border}, 0 0 0 3px rgba(14,165,233,0.4)'
-            status_badge = '<span style="font-size: 10px; font-weight: 800; background: #0ea5e9; padding: 2px 6px; border-radius: 4px; color: white; margin-left: 4px;">💬 방문상담</span>'
+            badge_text = '💬 방문활동(표지판교체)' if '표지판교체' in current_status else '💬 방문상담'
+            status_badge = f'<span style="font-size: 10px; font-weight: 800; background: #0ea5e9; padding: 2px 6px; border-radius: 4px; color: white; margin-left: 4px;">{badge_text}</span>'
         else:
             marker_border = '#ffffff'
             box_shadow = f'0 0 8px {type_color}, 0 0 0 2px rgba(255,255,255,0.3)'

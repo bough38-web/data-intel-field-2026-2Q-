@@ -18,14 +18,15 @@ st.set_page_config(
 
 # --- Theme Definitions ---
 THEMES = {
-    "다크 네이비 (기본)": {"bg": "#0f172a", "sidebar": "#1e293b", "accent": "#38bdf8", "btn1": "#2563eb", "btn2": "#3b82f6"},
-    "미드나잇 퍼플": {"bg": "#2e1065", "sidebar": "#3b0764", "accent": "#d8b4fe", "btn1": "#7e22ce", "btn2": "#9333ea"},
-    "포레스트 그린": {"bg": "#064e3b", "sidebar": "#065f46", "accent": "#34d399", "btn1": "#059669", "btn2": "#10b981"},
-    "옵시디언 블랙": {"bg": "#0a0a0a", "sidebar": "#171717", "accent": "#f87171", "btn1": "#dc2626", "btn2": "#ef4444"}
+    "클린 화이트 (기본)": {"bg": "#f8fafc", "sidebar": "#ffffff", "accent": "#0ea5e9", "btn1": "#2563eb", "btn2": "#3b82f6", "text": "#0f172a", "text_muted": "#475569", "border": "rgba(0, 0, 0, 0.1)"},
+    "다크 네이비": {"bg": "#0f172a", "sidebar": "#1e293b", "accent": "#38bdf8", "btn1": "#2563eb", "btn2": "#3b82f6", "text": "#ffffff", "text_muted": "#cbd5e1", "border": "rgba(255, 255, 255, 0.1)"},
+    "미드나잇 퍼플": {"bg": "#2e1065", "sidebar": "#3b0764", "accent": "#d8b4fe", "btn1": "#7e22ce", "btn2": "#9333ea", "text": "#ffffff", "text_muted": "#cbd5e1", "border": "rgba(255, 255, 255, 0.1)"},
+    "포레스트 그린": {"bg": "#064e3b", "sidebar": "#065f46", "accent": "#34d399", "btn1": "#059669", "btn2": "#10b981", "text": "#ffffff", "text_muted": "#cbd5e1", "border": "rgba(255, 255, 255, 0.1)"},
+    "옵시디언 블랙": {"bg": "#0a0a0a", "sidebar": "#171717", "accent": "#f87171", "btn1": "#dc2626", "btn2": "#ef4444", "text": "#ffffff", "text_muted": "#cbd5e1", "border": "rgba(255, 255, 255, 0.1)"}
 }
 
 if 'current_theme' not in st.session_state:
-    st.session_state.current_theme = "다크 네이비 (기본)"
+    st.session_state.current_theme = "클린 화이트 (기본)"
 
 t = THEMES[st.session_state.current_theme]
 
@@ -33,12 +34,12 @@ t = THEMES[st.session_state.current_theme]
 st.markdown(f"""
 <style class="notranslate" translate="no">
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-html, body, [class*="css"] {{ font-family: 'Pretendard', sans-serif; }}
+html, body, [class*="css"] {{ font-family: 'Pretendard', sans-serif; color: {t['text']} !important; }}
 #MainMenu {{visibility: hidden;}}
 footer {{visibility: hidden;}}
 header {{background: transparent !important;}}
-.stApp {{ background-color: {t['bg']} !important; }}
-.sidebar .sidebar-content, section[data-testid="stSidebar"] {{ background-color: {t['sidebar']} !important; border-right: 1px solid rgba(255, 255, 255, 0.05); }}
+.stApp {{ background-color: {t['bg']} !important; color: {t['text']} !important; }}
+.sidebar .sidebar-content, section[data-testid="stSidebar"] {{ background-color: {t['sidebar']} !important; border-right: 1px solid {t['border']}; }}
 h1, h2, h3 {{ font-weight: 800; letter-spacing: -0.5px; }}
 
 /* Pill Button Styling for Sidebar */
@@ -95,19 +96,19 @@ section[data-testid="stSidebar"] div[data-testid="column"] {{
     color: {t['accent']} !important;
 }}
 
-.metric-card {{ background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 20px; text-align: center; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }}
+.metric-card {{ background: {t['sidebar']}; border: 1px solid {t['border']}; border-radius: 16px; padding: 20px; text-align: center; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); }}
 .metric-value {{ font-size: 2rem; font-weight: 800; color: {t['accent']}; }}
-.metric-label {{ font-size: 0.9rem; color: #cbd5e1; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }}
+.metric-label {{ font-size: 0.9rem; color: {t['text_muted']}; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }}
 .download-btn-container {{ margin-top: 20px; }}
 
 /* Dashboard Tabs Visibility Enhancement */
 div[data-testid="stTabs"] [data-baseweb="tab-list"] {{
-    background: rgba(255, 255, 255, 0.03);
+    background: {t['sidebar']};
     border-radius: 16px;
     padding: 6px;
     gap: 8px;
     margin-bottom: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid {t['border']};
 }}
 div[data-testid="stTabs"] [data-baseweb="tab"] {{
     flex: 1;
@@ -117,7 +118,7 @@ div[data-testid="stTabs"] [data-baseweb="tab"] {{
     padding: 16px 0 !important;
     background-color: transparent;
     border: 1px solid transparent !important;
-    color: #94a3b8 !important;
+    color: {t['text_muted']} !important;
     font-size: 18px !important;
     font-weight: 800 !important;
     transition: all 0.3s ease;
@@ -125,8 +126,8 @@ div[data-testid="stTabs"] [data-baseweb="tab"] {{
 div[data-testid="stTabs"] [aria-selected="true"] {{
     background: linear-gradient(135deg, {t['btn1']}, {t['btn2']}) !important;
     color: white !important;
-    box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.3) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid {t['border']} !important;
 }}
 </style>
 """, unsafe_allow_html=True)
@@ -331,6 +332,7 @@ with st.sidebar:
                     "부실": "🟠 부실",
                     "체납직권(정지)": "🟤 체납직권(정지)",
                     "방문상담": "💬 방문상담",
+                    "방문활동(표지판교체)": "💬 방문활동(표지판교체)",
                     "재계약": "🌟 재계약"
                 }
                 
@@ -388,6 +390,7 @@ with st.sidebar:
                     "부실": "🟠 부실",
                     "체납직권(정지)": "🟤 체납직권(정지)",
                     "방문상담": "💬 방문상담",
+                    "방문활동(표지판교체)": "💬 방문활동(표지판교체)",
                     "재계약": "🌟 재계약"
                 }
                 
@@ -427,16 +430,17 @@ if df is not None:
         
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.markdown(f"<div class='metric-card'><div class='metric-label'>총 활동대상</div><div class='metric-value'>{len(df)}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-card'><div class='metric-label'>활동대상</div><div class='metric-value'>{len(df)}</div></div>", unsafe_allow_html=True)
     with col2:
-        sp_cnt = len(df[df['target_type'] == 'SP'])
-        st.markdown(f"<div class='metric-card'><div class='metric-label'>고위험(SP)</div><div class='metric-value' style='color:#ef4444;'>{sp_cnt}</div></div>", unsafe_allow_html=True)
+        visit_cnt = len(df[df['status'].isin(['방문상담', '방문활동(표지판교체)'])])
+        visit_label = '방문활동(표지판교체)' if len(df) > 0 and all(df['target_type'].isin(['SE', 'SG'])) else '방문상담'
+        st.markdown(f"<div class='metric-card'><div class='metric-label'>{visit_label}</div><div class='metric-value' style='color:{t[\"accent\"]};'>{visit_cnt}</div></div>", unsafe_allow_html=True)
     with col3:
-        sg_cnt = len(df[df['target_type'] == 'SG'])
-        st.markdown(f"<div class='metric-card'><div class='metric-label'>중위험(SG)</div><div class='metric-value' style='color:#f59e0b;'>{sg_cnt}</div></div>", unsafe_allow_html=True)
+        renewal_cnt = len(df[df['status'] == '재계약'])
+        st.markdown(f"<div class='metric-card'><div class='metric-label'>재계약</div><div class='metric-value' style='color:{t[\"accent\"]};'>{renewal_cnt}</div></div>", unsafe_allow_html=True)
     with col4:
-        se_cnt = len(df[df['target_type'] == 'SE'])
-        st.markdown(f"<div class='metric-card'><div class='metric-label'>일반(SE)</div><div class='metric-value' style='color:#3b82f6;'>{se_cnt}</div></div>", unsafe_allow_html=True)
+        no_act_cnt = len(df[df['activity_status'] == '미접수'])
+        st.markdown(f"<div class='metric-card'><div class='metric-label'>미활동</div><div class='metric-value' style='color:{t[\"text_muted\"]};'>{no_act_cnt}</div></div>", unsafe_allow_html=True)
         
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -499,7 +503,7 @@ if df is not None:
                     margin=dict(l=20, r=20, t=20, b=20),
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
-                    font=dict(family="Pretendard", color="#cbd5e1"),
+                    font=dict(family="Pretendard", color=t['text']),
                     coloraxis_showscale=False
                 )
                 fig_branch_rank.update_xaxes(range=[0, 100], gridcolor='rgba(255,255,255,0.05)')
@@ -595,11 +599,12 @@ if df is not None:
         else:
             # Common plotly layout adjustments for Data Intel PRO dark theme
             plotly_bg = 'rgba(0,0,0,0)'
-            plotly_font = dict(family="Pretendard", size=12, color="#cbd5e1")
+            plotly_font = dict(family="Pretendard", size=12, color=t['text'])
             
             # Define status colors
             status_colors = {
                 '방문상담': '#38bdf8',
+                '방문활동(표지판교체)': '#38bdf8',
                 '재계약': '#34d399',
                 '미접수': '#94a3b8'
             }
