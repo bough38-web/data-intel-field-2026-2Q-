@@ -105,8 +105,10 @@ def load_data(file_path_or_buffer):
                 'activity_status': str(row[col_mappings['activity_status']]).strip() if col_mappings['activity_status'] and pd.notna(row[col_mappings['activity_status']]) else '미접수',
                 'activity_detail': str(row[col_mappings['activity_detail']]).strip() if col_mappings['activity_detail'] and pd.notna(row[col_mappings['activity_detail']]) else '-'
             }
-            # Normalize activity status
-            if item['activity_status'].lower() in ['x', '미접수', '-', '']:
+            # Override activity_status with status column for performance tracking
+            if item['status'] in ['방문상담', '재계약']:
+                item['activity_status'] = item['status']
+            else:
                 item['activity_status'] = '미접수'
             processed_data.append(item)
             
