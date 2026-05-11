@@ -65,6 +65,23 @@ def create_map(df, tiles='OpenStreetMap'):
         status_color = '#10b981' if row['activity_status'] != '미접수' else '#ef4444'
         type_color = '#ef4444' if row['target_type'] == 'SP' else '#f59e0b' if row['target_type'] == 'SG' else '#3b82f6'
         
+        current_status = str(row.get('status', ''))
+        is_renewal = '재계약' in current_status
+        is_visit = '방문상담' in current_status
+        
+        if is_renewal:
+            marker_border = '#a855f7' # Purple
+            box_shadow = f'0 0 12px {marker_border}, 0 0 0 3px rgba(168,85,247,0.4)'
+            status_badge = '<span style="font-size: 10px; font-weight: 800; background: #a855f7; padding: 2px 6px; border-radius: 4px; color: white; margin-left: 4px;">🌟 재계약</span>'
+        elif is_visit:
+            marker_border = '#0ea5e9' # Sky blue
+            box_shadow = f'0 0 12px {marker_border}, 0 0 0 3px rgba(14,165,233,0.4)'
+            status_badge = '<span style="font-size: 10px; font-weight: 800; background: #0ea5e9; padding: 2px 6px; border-radius: 4px; color: white; margin-left: 4px;">💬 방문상담</span>'
+        else:
+            marker_border = '#ffffff'
+            box_shadow = f'0 0 8px {type_color}, 0 0 0 2px rgba(255,255,255,0.3)'
+            status_badge = ''
+            
         # Enhanced Marker Icon: Glow effect + Clear border
         html_icon = f'''
             <div style="
@@ -72,8 +89,8 @@ def create_map(df, tiles='OpenStreetMap'):
                 border-radius: 50%; 
                 width: 14px; 
                 height: 14px; 
-                border: 2px solid #ffffff;
-                box-shadow: 0 0 8px {type_color}, 0 0 0 2px rgba(255,255,255,0.3);
+                border: 2px solid {marker_border};
+                box-shadow: {box_shadow};
             "></div>
         '''
         icon = folium.DivIcon(html=html_icon, icon_anchor=(7, 7))
@@ -83,7 +100,10 @@ def create_map(df, tiles='OpenStreetMap'):
         <div style="font-family: 'Pretendard', sans-serif; width: 240px; padding: 0; background: #0f172a; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
             <div style="background: linear-gradient(135deg, {type_color}dd, {type_color}); padding: 12px; color: white;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <span style="font-size: 10px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">{row['target_type']}</span>
+                    <div>
+                        <span style="font-size: 10px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">{row['target_type']}</span>
+                        {status_badge}
+                    </div>
                     <span style="font-size: 10px; font-weight: 600; color: white;">{row['branch']} 지사</span>
                 </div>
                 <h4 style="margin: 0; font-size: 15px; font-weight: 800; letter-spacing: -0.02em;">{row['name']}</h4>
