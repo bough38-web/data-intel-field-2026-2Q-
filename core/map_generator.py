@@ -139,8 +139,8 @@ def create_map(df, tiles='OpenStreetMap'):
                 <div style="margin-top: 10px; font-size: 11px; line-height: 1.4; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
                     📍 {row['address']}
                 </div>
-                <div style="margin-top: 8px; font-size: 10px; color: #38bdf8; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px;">
-                    👆 마커를 클릭하면 아래 지도 밑에 빠른 활동 등록 패널이 열립니다
+                <div onclick="window.parent.postMessage({{type: 'quickRegisterScroll'}}, '*')" style="cursor: pointer; margin-top: 10px; padding: 8px; background: linear-gradient(135deg, #2563eb, #3b82f6); border-radius: 8px; color: white; font-size: 12px; font-weight: 700; text-align: center;">
+                    ⚡ 바로 활동 등록하기
                 </div>
             </div>
         </div>

@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from streamlit_folium import st_folium
 import plotly.express as px
@@ -16,6 +17,21 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Bridge: the map's folium popup lives in a sandboxed iframe that can't navigate
+# or scroll the outer page directly, so its "바로 활동 등록하기" button posts a
+# message here instead, and this listener (running in its own components iframe,
+# whose window.parent is the same top-level page) scrolls the outer document.
+components.html("""
+<script>
+window.parent.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'quickRegisterScroll') {
+        var el = window.parent.document.getElementById('quick_register_panel');
+        if (el) { el.scrollIntoView({behavior: 'smooth', block: 'start'}); }
+    }
+});
+</script>
+""", height=0)
 
 # --- Theme Definitions ---
 THEMES = {
@@ -599,6 +615,10 @@ if df is not None:
                 mime="text/html"
             )
             st.markdown("</div>", unsafe_allow_html=True)
+
+            # Scroll anchor: the map popup's "⚡ 바로 활동 등록하기" button links here
+            # via target="_parent" so a click inside the iframe scrolls this outer page.
+            st.markdown("<div id='quick_register_panel'></div>", unsafe_allow_html=True)
 
             # --- Quick activity registration from a clicked map marker ---
             if not enable_routing:
