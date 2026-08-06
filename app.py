@@ -12,7 +12,7 @@ from core.map_generator import create_map, create_route_map, export_map_to_html
 
 # --- Page Config ---
 st.set_page_config(
-    page_title="Data Intel PRO | 2Q 현장관제",
+    page_title="Data Intel PRO | 관리고객 현장관제",
     page_icon="🗺️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -238,7 +238,7 @@ div[data-testid="stTabs"] {{ background: rgba(255, 255, 255, 0.05); backdrop-fil
         Data Intel PRO 보안 접속
     </div>
     <h1 style="font-size: 32px; font-weight: 800; line-height: 1.2; margin-bottom: 8px; color: {t['text']}; letter-spacing: -1px;">현장 지도/방문<br>관제 시스템</h1>
-    <p style="font-size: 14px; color: {t['text_muted']}; line-height: 1.5;">2Q 유지이탈 관리 데이터를 안전하게 보호합니다.<br>현장직원은 본인 구역을 선택하고, 관리자는 비밀번호를 입력하세요.</p>
+    <p style="font-size: 14px; color: {t['text_muted']}; line-height: 1.5;">관리고객 유지이탈 관리 데이터를 안전하게 보호합니다.<br>현장직원은 본인 구역을 선택하고, 관리자는 비밀번호를 입력하세요.</p>
 </div>
     """, unsafe_allow_html=True)
     
@@ -325,7 +325,7 @@ div[data-testid="stTabs"] {{ background: rgba(255, 255, 255, 0.05); backdrop-fil
 # --- Main App (Logged In) ---
 col_title, col_theme = st.columns([4, 1])
 with col_title:
-    st.markdown(f"<h1 style='margin-top: -15px;'>🗺️ Data Intel PRO <span style='color: {t['accent']}; font-weight: 300;'>| 2Q 현장관제</span></h1>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='margin-top: -15px;'>🗺️ Data Intel PRO <span style='color: {t['accent']}; font-weight: 300;'>| 관리고객 현장관제</span></h1>", unsafe_allow_html=True)
 with col_theme:
     selected_theme = st.selectbox("테마 선택", list(THEMES.keys()), index=list(THEMES.keys()).index(st.session_state.current_theme), label_visibility="collapsed", key="theme_selector")
     if selected_theme != st.session_state.current_theme:
@@ -652,7 +652,7 @@ if df is not None:
             st.download_button(
                 label="📥 공유용 HTML 파일 다운로드",
                 data=html_data,
-                file_name="2Q_유지이탈_지도공유.html",
+                file_name="관리고객_유지이탈_지도공유.html",
                 mime="text/html"
             )
             st.markdown("</div>", unsafe_allow_html=True)
@@ -917,7 +917,7 @@ if df is not None:
             st.download_button(
                 label="📥 활동이력 엑셀 다운로드",
                 data=excel_buffer.getvalue(),
-                file_name="2Q_활동이력.xlsx",
+                file_name="관리고객_활동이력.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="reg_excel_download"
             )
@@ -1020,7 +1020,7 @@ if df is not None:
                 st.download_button(
                     label="📥 로그인 이력 엑셀 다운로드",
                     data=log_excel_buffer.getvalue(),
-                    file_name="2Q_로그인이력.xlsx",
+                    file_name="관리고객_로그인이력.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key="loginlog_excel_download"
                 )
