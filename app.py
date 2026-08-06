@@ -580,6 +580,9 @@ if df is not None:
             else:
                 m = create_map(df, tiles=selected_tile)
             
+            if not enable_routing:
+                st.caption("💡 지도에 숫자가 적힌 원(그룹)은 여러 시설이 뭉쳐있는 상태입니다. 그룹을 클릭해 확대한 뒤, 완전히 벌어진 개별 마커(작은 점)를 클릭하면 아래에 빠른 활동 등록 패널이 열립니다.")
+
             # Map Container Styling for a cleaner look
             st.markdown("<style>#folium-map-container { border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }</style>", unsafe_allow_html=True)
             st.markdown("<div id='folium-map-container'>", unsafe_allow_html=True)
