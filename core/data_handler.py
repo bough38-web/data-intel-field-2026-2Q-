@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+import os
 from datetime import datetime
 
 def mask_name(name):
@@ -154,6 +155,25 @@ def update_activity(file_path, row_id, new_status, detail, modifier):
         raw.loc[row_id, '최종수정일시'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         raw.to_csv(file_path, index=False, encoding='utf-8-sig')
+        return True
+    except Exception:
+        return False
+
+
+def log_login(log_path, login_type, branch='-', target_type='-', zone='-'):
+    """Append one row to the shared login history log (created on first use)."""
+    try:
+        entry = pd.DataFrame([{
+            '로그인시각': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            '유형': login_type,
+            '지사': branch,
+            '활동대상구분': target_type,
+            '구역': zone,
+        }])
+        if os.path.exists(log_path):
+            existing = pd.read_csv(log_path, encoding='utf-8-sig')
+            entry = pd.concat([existing, entry], ignore_index=True)
+        entry.to_csv(log_path, index=False, encoding='utf-8-sig')
         return True
     except Exception:
         return False

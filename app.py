@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import io
 import os
 import re
-from core.data_handler import load_data, update_activity
+from core.data_handler import load_data, update_activity, log_login
 from core.map_generator import create_map, create_route_map, export_map_to_html
 
 # --- Page Config ---
@@ -206,6 +206,7 @@ BRANCH_ADMIN_PASSWORDS = {
     "강릉": "791012",
     "원주": "659523",
 }
+LOGIN_LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'login_log.csv')
 
 # --- Login Screen ---
 if not st.session_state.logged_in:
@@ -288,6 +289,7 @@ div[data-testid="stTabs"] {{ background: rgba(255, 255, 255, 0.05); backdrop-fil
                         'target_type': l_type,
                         'zone': l_zone
                     }
+                    log_login(LOGIN_LOG_PATH, '현장직원', branch=l_branch, target_type=l_type, zone=l_zone)
                     st.rerun()
                     
         with tab2:
@@ -304,6 +306,8 @@ div[data-testid="stTabs"] {{ background: rgba(255, 255, 255, 0.05); backdrop-fil
                     st.session_state.logged_in = True
                     st.session_state.role = 'admin'
                     st.session_state.admin_branch = None if is_master else admin_scope
+                    login_type = '마스터관리자' if is_master else '지사관리자'
+                    log_login(LOGIN_LOG_PATH, login_type, branch=('전체' if is_master else admin_scope))
                     st.rerun()
                 else:
                     st.error("비밀번호가 일치하지 않습니다.")
@@ -499,12 +503,16 @@ if df is not None:
         
     st.markdown("<br>", unsafe_allow_html=True)
     
-    if st.session_state.role == 'admin':
+    if st.session_state.role == 'admin' and st.session_state.admin_branch is None:
+        tab_summary, tab_map, tab_dashboard, tab_register, tab_loginlog = st.tabs(["📈 요약 대시보드", "🗺️ 스마트 현장 지도", "📊 종합 활동 대시보드", "✏️ 활동이력 등록", "🔐 로그인 이력"])
+    elif st.session_state.role == 'admin':
         tab_summary, tab_map, tab_dashboard, tab_register = st.tabs(["📈 요약 대시보드", "🗺️ 스마트 현장 지도", "📊 종합 활동 대시보드", "✏️ 활동이력 등록"])
+        tab_loginlog = None
     else:
         tab_map, tab_register = st.tabs(["🗺️ 스마트 현장 지도", "✏️ 활동이력 등록"])
         tab_summary = None
         tab_dashboard = None
+        tab_loginlog = None
     
     if tab_summary is not None:
         with tab_summary:
@@ -976,5 +984,45 @@ if df is not None:
                 st.dataframe(hist_display, use_container_width=True, hide_index=True)
             else:
                 st.caption("아직 등록된 활동이력이 없습니다.")
+
+    if tab_loginlog is not None:
+        with tab_loginlog:
+            st.markdown("""
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding: 10px 15px; background: rgba(56, 189, 248, 0.05); border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">
+                <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px;">🔐</span> 로그인 이력 (마스터 관리자 전용)
+                </h3>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if not os.path.exists(LOGIN_LOG_PATH):
+                st.caption("아직 기록된 로그인 이력이 없습니다.")
+            else:
+                log_df = pd.read_csv(LOGIN_LOG_PATH, encoding='utf-8-sig')
+                log_df = log_df.sort_values('로그인시각', ascending=False).reset_index(drop=True)
+
+                type_options = ["전체"] + sorted(log_df['유형'].dropna().unique().tolist())
+                selected_log_type = st.selectbox("유형 필터", type_options, key="loginlog_type_filter")
+                log_display = log_df if selected_log_type == "전체" else log_df[log_df['유형'] == selected_log_type]
+
+                lc1, lc2, lc3 = st.columns(3)
+                with lc1:
+                    st.metric("총 로그인 건수", len(log_df))
+                with lc2:
+                    st.metric("현장직원 로그인", int((log_df['유형'] == '현장직원').sum()))
+                with lc3:
+                    st.metric("관리자 로그인", int(log_df['유형'].isin(['마스터관리자', '지사관리자']).sum()))
+
+                st.dataframe(log_display, use_container_width=True, hide_index=True, height=450)
+
+                log_excel_buffer = io.BytesIO()
+                log_df.to_excel(log_excel_buffer, index=False, engine='openpyxl', sheet_name='로그인이력')
+                st.download_button(
+                    label="📥 로그인 이력 엑셀 다운로드",
+                    data=log_excel_buffer.getvalue(),
+                    file_name="2Q_로그인이력.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="loginlog_excel_download"
+                )
 else:
     st.info("데이터베이스 파일(db.csv)을 찾을 수 없습니다. 관리자에게 문의하세요.")
