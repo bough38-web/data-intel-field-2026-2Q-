@@ -311,7 +311,7 @@ with st.sidebar:
         st.session_state.role = None
         st.session_state.user_info = {}
         # Clear filter states
-        keys_to_clear = ['filter_type', 'filter_branch', 'filter_zone', 'filter_status', 'login_branch', 'login_type', 'login_zone', 'login_admin_pw']
+        keys_to_clear = ['filter_type', 'filter_branch', 'filter_zone', 'filter_status', 'login_branch', 'login_type', 'login_zone', 'login_admin_pw', 'map_clicked_tooltip']
         for k in keys_to_clear:
             if k in st.session_state:
                 del st.session_state[k]
@@ -599,7 +599,14 @@ if df is not None:
 
             # --- Quick activity registration from a clicked map marker ---
             if not enable_routing:
-                clicked_tooltip = st_data.get("last_object_clicked_tooltip") if st_data else None
+                # The map is rebuilt on every rerun, so st_folium's own click memory
+                # resets whenever an unrelated widget (e.g. the status dropdown below)
+                # triggers a rerun. Persist the last real click in session_state so the
+                # panel survives interacting with its own inputs.
+                fresh_tooltip = st_data.get("last_object_clicked_tooltip") if st_data else None
+                if fresh_tooltip:
+                    st.session_state['map_clicked_tooltip'] = fresh_tooltip
+                clicked_tooltip = st.session_state.get('map_clicked_tooltip')
                 match = re.search(r"계약번호:(\S+)", clicked_tooltip) if clicked_tooltip else None
                 if match:
                     clicked_contract_no = match.group(1)
@@ -630,6 +637,7 @@ if df is not None:
                                 ok = update_activity(db_path, int(target_row['_row_id']), q_status, q_detail, modifier)
                                 if ok:
                                     st.success(f"'{target_row['name']}' 상태가 '{q_status}'(으)로 저장되었습니다.")
+                                    st.session_state.pop('map_clicked_tooltip', None)
                                     load_and_set_data()
                                     st.rerun()
                                 else:
