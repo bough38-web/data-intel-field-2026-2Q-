@@ -42,7 +42,7 @@ def load_data(file_path_or_buffer):
         
         # Define mappings for common column names
         col_mappings = {
-            'target_type': next((c for c in cols if '활동대상' in c), None),
+            'target_type': next((c for c in cols if '활동대상' in c or '담당채널' in c), None),
             'branch': next((c for c in cols if '지사' in c), None),
             'zone': next((c for c in cols if '구역' in c or '담당자' in c), None),
             'name': next((c for c in cols if '상호' in c), None),
