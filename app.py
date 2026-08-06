@@ -173,6 +173,8 @@ if 'role' not in st.session_state:
     st.session_state.role = None
 if 'user_info' not in st.session_state:
     st.session_state.user_info = {}
+if 'admin_branch' not in st.session_state:
+    st.session_state.admin_branch = None
 
 def button_group(key, options, cols_per_row=3):
     if key not in st.session_state:
@@ -192,6 +194,18 @@ def button_group(key, options, cols_per_row=3):
 df = st.session_state.processed_data
 branch_order = ["중앙", "강북", "서대문", "고양", "의정부", "남양주", "강릉", "원주"]
 STATUS_OPTIONS = ["미접수", "활동중", "방문상담", "재계약", "재계약거부"]
+
+MASTER_ADMIN_PASSWORD = "admin0303"
+BRANCH_ADMIN_PASSWORDS = {
+    "중앙": "451829",
+    "강북": "680558",
+    "서대문": "836913",
+    "고양": "545482",
+    "의정부": "412272",
+    "남양주": "143409",
+    "강릉": "791012",
+    "원주": "659523",
+}
 
 # --- Login Screen ---
 if not st.session_state.logged_in:
@@ -278,13 +292,18 @@ div[data-testid="stTabs"] {{ background: rgba(255, 255, 255, 0.05); backdrop-fil
                     
         with tab2:
             st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
-            admin_pw = st.text_input("마스터 비밀번호", type="password", key="login_admin_pw", placeholder="비밀번호 입력")
-            
+            admin_scope_options = ["🌐 전체 (마스터 관리자)"] + branch_order
+            admin_scope = st.selectbox("지사 선택", admin_scope_options, key="login_admin_branch")
+            admin_pw = st.text_input("비밀번호", type="password", key="login_admin_pw", placeholder="비밀번호 입력")
+
             st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
             if st.button("🗺️ 전체 대시보드 접속", type="primary", use_container_width=True, key="btn_admin_login"):
-                if admin_pw == "0303":
+                is_master = admin_scope == "🌐 전체 (마스터 관리자)"
+                expected_pw = MASTER_ADMIN_PASSWORD if is_master else BRANCH_ADMIN_PASSWORDS.get(admin_scope)
+                if admin_pw == expected_pw:
                     st.session_state.logged_in = True
                     st.session_state.role = 'admin'
+                    st.session_state.admin_branch = None if is_master else admin_scope
                     st.rerun()
                 else:
                     st.error("비밀번호가 일치하지 않습니다.")
@@ -309,11 +328,18 @@ with col_theme:
         st.session_state.current_theme = selected_theme
         st.rerun()
 
+# Branch-scoped admins only ever work with their own branch's data
+if st.session_state.role == 'admin' and st.session_state.admin_branch and df is not None:
+    df = df[df['branch'] == st.session_state.admin_branch]
+
 # --- Sidebar ---
 with st.sidebar:
     st.markdown("<h3>👤 내 정보</h3>", unsafe_allow_html=True)
     if st.session_state.role == 'admin':
-        st.info("🛡️ 마스터 관리자 권한으로 접속 중")
+        if st.session_state.admin_branch:
+            st.info(f"🛡️ {st.session_state.admin_branch} 지사 관리자로 접속 중")
+        else:
+            st.info("🛡️ 마스터 관리자 권한으로 접속 중")
     else:
         info = st.session_state.user_info
         st.success(f"👤 {info['branch']} | {info['target_type']} | {info['zone'].upper()}")
@@ -326,8 +352,9 @@ with st.sidebar:
         st.session_state.logged_in = False
         st.session_state.role = None
         st.session_state.user_info = {}
+        st.session_state.admin_branch = None
         # Clear filter states
-        keys_to_clear = ['filter_type', 'filter_branch', 'filter_zone', 'filter_status', 'login_branch', 'login_type', 'login_zone', 'login_admin_pw', 'map_clicked_tooltip']
+        keys_to_clear = ['filter_type', 'filter_branch', 'filter_zone', 'filter_status', 'login_branch', 'login_type', 'login_zone', 'login_admin_pw', 'login_admin_branch', 'map_clicked_tooltip']
         for k in keys_to_clear:
             if k in st.session_state:
                 del st.session_state[k]
