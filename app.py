@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import io
 import os
-from core.data_handler import load_data
+from core.data_handler import load_data, update_activity
 from core.map_generator import create_map, create_route_map, export_map_to_html
 
 # --- Page Config ---
@@ -204,8 +204,8 @@ div[data-testid="stTabs"] {{ background: rgba(255, 255, 255, 0.05); backdrop-fil
         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-top: -1px;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
         Data Intel PRO 보안 접속
     </div>
-    <h1 style="font-size: 32px; font-weight: 800; line-height: 1.2; margin-bottom: 8px; color: white; letter-spacing: -1px;">현장 지도/방문<br>관제 시스템</h1>
-    <p style="font-size: 14px; color: #94a3b8; line-height: 1.5;">2Q 유지이탈 관리 데이터를 안전하게 보호합니다.<br>현장직원은 본인 구역을 선택하고, 관리자는 비밀번호를 입력하세요.</p>
+    <h1 style="font-size: 32px; font-weight: 800; line-height: 1.2; margin-bottom: 8px; color: {t['text']}; letter-spacing: -1px;">현장 지도/방문<br>관제 시스템</h1>
+    <p style="font-size: 14px; color: {t['text_muted']}; line-height: 1.5;">2Q 유지이탈 관리 데이터를 안전하게 보호합니다.<br>현장직원은 본인 구역을 선택하고, 관리자는 비밀번호를 입력하세요.</p>
 </div>
     """, unsafe_allow_html=True)
     
@@ -300,6 +300,10 @@ with st.sidebar:
         info = st.session_state.user_info
         st.success(f"👤 {info['branch']} | {info['target_type']} | {info['zone'].upper()}")
         
+    if st.button("🔄 최신 데이터 새로고침", use_container_width=True):
+        load_and_set_data()
+        st.rerun()
+
     if st.button("🚪 로그아웃", use_container_width=True):
         st.session_state.logged_in = False
         st.session_state.role = None
@@ -333,7 +337,9 @@ with st.sidebar:
                     "체납직권(정지)": "🟤 체납직권(정지)",
                     "방문상담": "💬 방문상담",
                     "방문활동(표지판교체)": "💬 방문활동(표지판교체)",
-                    "재계약": "🌟 재계약"
+                    "활동중": "🔧 활동중",
+                    "재계약": "🌟 재계약",
+                    "재계약거부": "❌ 재계약거부"
                 }
                 
                 raw_statuses = df_type['status'].dropna().unique()
@@ -391,7 +397,9 @@ with st.sidebar:
                     "체납직권(정지)": "🟤 체납직권(정지)",
                     "방문상담": "💬 방문상담",
                     "방문활동(표지판교체)": "💬 방문활동(표지판교체)",
-                    "재계약": "🌟 재계약"
+                    "활동중": "🔧 활동중",
+                    "재계약": "🌟 재계약",
+                    "재계약거부": "❌ 재계약거부"
                 }
                 
                 raw_statuses = df_user['status'].dropna().unique()
@@ -414,6 +422,7 @@ if df is not None:
         df = df[df['branch'] == info['branch']]
         df = df[df['target_type'] == info['target_type']]
         df = df[df['zone'].astype(str).str.lower() == str(info['zone']).lower()]
+        df_scope = df.copy()  # full assigned scope, unaffected by the marker quick-filter below
         if 'filter_status' in st.session_state and st.session_state.filter_status != "🔵 전체":
             raw_status = st.session_state.filter_status.split(" ", 1)[1]
             df = df[df['status'] == raw_status]
@@ -424,6 +433,7 @@ if df is not None:
             df = df[df['zone'] == selected_zone]
         if selected_type != "전체":
             df = df[df['target_type'] == selected_type]
+        df_scope = df.copy()  # full filtered scope, unaffected by the marker quick-filter below
         if selected_status != "🔵 전체":
             raw_status = selected_status.split(" ", 1)[1]
             df = df[df['status'] == raw_status]
@@ -434,17 +444,17 @@ if df is not None:
     with col2:
         visit_cnt = len(df[df['status'].isin(['방문상담', '방문활동(표지판교체)'])])
         visit_label = '방문활동(표지판교체)' if len(df) > 0 and all(df['target_type'].isin(['SE', 'SG'])) else '방문상담'
-        st.markdown(f"<div class='metric-card'><div class='metric-label'>{visit_label}</div><div class='metric-value' style='color:{t[\"accent\"]};'>{visit_cnt}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-card'><div class='metric-label'>{visit_label}</div><div class='metric-value' style='color:{t['accent']};'>{visit_cnt}</div></div>", unsafe_allow_html=True)
     with col3:
         renewal_cnt = len(df[df['status'] == '재계약'])
-        st.markdown(f"<div class='metric-card'><div class='metric-label'>재계약</div><div class='metric-value' style='color:{t[\"accent\"]};'>{renewal_cnt}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-card'><div class='metric-label'>재계약</div><div class='metric-value' style='color:{t['accent']};'>{renewal_cnt}</div></div>", unsafe_allow_html=True)
     with col4:
         no_act_cnt = len(df[df['activity_status'] == '미접수'])
-        st.markdown(f"<div class='metric-card'><div class='metric-label'>미활동</div><div class='metric-value' style='color:{t[\"text_muted\"]};'>{no_act_cnt}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-card'><div class='metric-label'>미활동</div><div class='metric-value' style='color:{t['text_muted']};'>{no_act_cnt}</div></div>", unsafe_allow_html=True)
         
     st.markdown("<br>", unsafe_allow_html=True)
     
-    tab_summary, tab_map, tab_dashboard = st.tabs(["📈 요약 대시보드", "🗺️ 스마트 현장 지도", "📊 종합 활동 대시보드"])
+    tab_summary, tab_map, tab_dashboard, tab_register = st.tabs(["📈 요약 대시보드", "🗺️ 스마트 현장 지도", "📊 종합 활동 대시보드", "✏️ 활동이력 등록"])
     
     with tab_summary:
         st.markdown("""
@@ -605,7 +615,9 @@ if df is not None:
             status_colors = {
                 '방문상담': '#38bdf8',
                 '방문활동(표지판교체)': '#38bdf8',
+                '활동중': '#f59e0b',
                 '재계약': '#34d399',
+                '재계약거부': '#f87171',
                 '미접수': '#94a3b8'
             }
             
@@ -769,5 +781,78 @@ if df is not None:
                 hide_index=True,
                 height=300
             )
+
+    with tab_register:
+        st.markdown("""
+        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding: 10px 15px; background: rgba(56, 189, 248, 0.05); border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">
+            <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">✏️</span> 담당구역 활동이력 등록
+            </h3>
+        </div>
+        """, unsafe_allow_html=True)
+
+        STATUS_OPTIONS = ["미접수", "활동중", "방문상담", "재계약", "재계약거부"]
+
+        if len(df_scope) == 0:
+            st.warning("등록할 대상 시설이 없습니다.")
+        else:
+            search_term = st.text_input("🔍 검색 (상호명 또는 계약번호)", key="reg_search", placeholder="검색어를 입력하세요")
+            df_reg = df_scope.copy()
+            if search_term:
+                mask = (
+                    df_reg['name'].str.contains(search_term, case=False, na=False) |
+                    df_reg['contract_no'].astype(str).str.contains(search_term, case=False, na=False)
+                )
+                df_reg = df_reg[mask]
+            df_reg = df_reg.reset_index(drop=True)
+
+            if len(df_reg) == 0:
+                st.warning("검색 조건에 해당하는 시설이 없습니다.")
+            else:
+                def _fmt_target(i):
+                    r = df_reg.iloc[i]
+                    return f"[{r['status']}] {r['name']} | {r['zone']} | 계약번호 {r['contract_no']}"
+
+                picked = st.selectbox("대상 시설 선택", list(range(len(df_reg))), format_func=_fmt_target, key="reg_target")
+                target_row = df_reg.iloc[picked]
+
+                st.markdown(f"<div style='font-size:13px; color:{t['text_muted']}; margin-bottom:10px;'>📍 {target_row['address']}</div>", unsafe_allow_html=True)
+
+                reg_col1, reg_col2 = st.columns([1, 2])
+                with reg_col1:
+                    current_idx = STATUS_OPTIONS.index(target_row['status']) if target_row['status'] in STATUS_OPTIONS else 0
+                    new_status = st.selectbox("활동상태 변경", STATUS_OPTIONS, index=current_idx, key="reg_status")
+                with reg_col2:
+                    default_detail = "" if target_row['activity_detail'] == '-' else target_row['activity_detail']
+                    new_detail = st.text_input("세부 활동내역 (선택)", value=default_detail, key="reg_detail")
+
+                if st.button("💾 활동이력 저장", type="primary", use_container_width=True, key="reg_submit"):
+                    if st.session_state.role == 'admin':
+                        modifier = "관리자"
+                    else:
+                        u = st.session_state.user_info
+                        modifier = f"{u['branch']}-{u['zone']}"
+                    current_dir = os.path.dirname(os.path.abspath(__file__))
+                    db_path = os.path.join(current_dir, 'db.csv')
+                    ok = update_activity(db_path, int(target_row['_row_id']), new_status, new_detail, modifier)
+                    if ok:
+                        st.success(f"'{target_row['name']}' 상태가 '{new_status}'(으)로 저장되었습니다.")
+                        load_and_set_data()
+                        st.rerun()
+                    else:
+                        st.error("저장에 실패했습니다. 데이터를 확인해주세요.")
+
+            st.markdown("<hr style='border-color: rgba(255,255,255,0.1); margin: 25px 0;'>", unsafe_allow_html=True)
+            st.markdown(f"<h4 style='font-size: 14px; color: {t['accent']};'>🕒 최근 등록 이력 (담당구역)</h4>", unsafe_allow_html=True)
+
+            hist = df_scope[df_scope['modified_at'].astype(str).str.strip() != '']
+            if len(hist) > 0:
+                hist = hist.sort_values('modified_at', ascending=False)
+                hist_display = hist[['name', 'status', 'modifier', 'modified_at']].rename(columns={
+                    'name': '상호', 'status': '상태', 'modifier': '수정자', 'modified_at': '수정일시'
+                }).head(20)
+                st.dataframe(hist_display, use_container_width=True, hide_index=True)
+            else:
+                st.caption("아직 등록된 활동이력이 없습니다.")
 else:
     st.info("데이터베이스 파일(db.csv)을 찾을 수 없습니다. 관리자에게 문의하세요.")

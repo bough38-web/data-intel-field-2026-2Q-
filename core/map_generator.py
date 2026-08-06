@@ -62,22 +62,39 @@ def create_map(df, tiles='OpenStreetMap'):
     
     for _, row in df.iterrows():
         # Premium Colors
-        status_color = '#10b981' if row['activity_status'] != '미접수' else '#ef4444'
-        type_color = '#ef4444' if row['target_type'] == 'SP' else '#f59e0b' if row['target_type'] == 'SG' else '#3b82f6'
-        
         current_status = str(row.get('status', ''))
-        is_renewal = '재계약' in current_status
+        is_renewal = '재계약' in current_status and '거부' not in current_status
+        is_rejected = '재계약거부' in current_status
         is_visit = '방문상담' in current_status or '방문활동(표지판교체)' in current_status
-        
+        is_active = current_status == '활동중'
+
+        if current_status == '미접수':
+            status_color = '#ef4444'
+        elif is_rejected:
+            status_color = '#f87171'
+        elif is_active:
+            status_color = '#f59e0b'
+        else:
+            status_color = '#10b981'
+        type_color = '#ef4444' if row['target_type'] == 'SP' else '#f59e0b' if row['target_type'] == 'SG' else '#3b82f6'
+
         if is_renewal:
             marker_border = '#a855f7' # Purple
             box_shadow = f'0 0 12px {marker_border}, 0 0 0 3px rgba(168,85,247,0.4)'
             status_badge = '<span style="font-size: 10px; font-weight: 800; background: #a855f7; padding: 2px 6px; border-radius: 4px; color: white; margin-left: 4px;">🌟 재계약</span>'
+        elif is_rejected:
+            marker_border = '#f87171' # Soft red
+            box_shadow = f'0 0 12px {marker_border}, 0 0 0 3px rgba(248,113,113,0.4)'
+            status_badge = '<span style="font-size: 10px; font-weight: 800; background: #f87171; padding: 2px 6px; border-radius: 4px; color: white; margin-left: 4px;">❌ 재계약거부</span>'
         elif is_visit:
             marker_border = '#0ea5e9' # Sky blue
             box_shadow = f'0 0 12px {marker_border}, 0 0 0 3px rgba(14,165,233,0.4)'
             badge_text = '💬 방문활동(표지판교체)' if '표지판교체' in current_status else '💬 방문상담'
             status_badge = f'<span style="font-size: 10px; font-weight: 800; background: #0ea5e9; padding: 2px 6px; border-radius: 4px; color: white; margin-left: 4px;">{badge_text}</span>'
+        elif is_active:
+            marker_border = '#f59e0b' # Amber
+            box_shadow = f'0 0 12px {marker_border}, 0 0 0 3px rgba(245,158,11,0.4)'
+            status_badge = '<span style="font-size: 10px; font-weight: 800; background: #f59e0b; padding: 2px 6px; border-radius: 4px; color: white; margin-left: 4px;">🔧 활동중</span>'
         else:
             marker_border = '#ffffff'
             box_shadow = f'0 0 8px {type_color}, 0 0 0 2px rgba(255,255,255,0.3)'

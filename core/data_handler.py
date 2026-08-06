@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+from datetime import datetime
 
 def mask_name(name):
     if not isinstance(name, str):
@@ -30,9 +31,9 @@ def mask_address(address):
 def load_data(file_path_or_buffer):
     try:
         if isinstance(file_path_or_buffer, str) and file_path_or_buffer.endswith('.csv'):
-            df = pd.read_csv(file_path_or_buffer, encoding='utf-8')
+            df = pd.read_csv(file_path_or_buffer, encoding='utf-8-sig')
         elif hasattr(file_path_or_buffer, 'name') and file_path_or_buffer.name.endswith('.csv'):
-            df = pd.read_csv(file_path_or_buffer, encoding='utf-8')
+            df = pd.read_csv(file_path_or_buffer, encoding='utf-8-sig')
         else:
             df = pd.read_excel(file_path_or_buffer)
         
@@ -55,6 +56,8 @@ def load_data(file_path_or_buffer):
             'service_no': next((c for c in cols if '서비스번호' in c), None),
             'activity_status': next((c for c in cols if '활동유무' in c), None),
             'activity_detail': next((c for c in cols if '세부 활동내역' in c or '세부활동내역' in c), None),
+            'modifier': next((c for c in cols if '최종수정자' in c), None),
+            'modified_at': next((c for c in cols if '최종수정일시' in c), None),
         }
         
         processed_data = []
@@ -85,7 +88,7 @@ def load_data(file_path_or_buffer):
             def safe_format(val):
                 if pd.isna(val) or str(val).strip() == '':
                     return '-'
-                val_str = str(val).strip()
+                val_str = str(val).strip().replace(',', '')
                 if val_str.endswith('.0'):
                     return val_str[:-2]
                 return val_str
@@ -103,20 +106,54 @@ def load_data(file_path_or_buffer):
                 'contract_no': safe_format(row[col_mappings['contract_no']]) if col_mappings['contract_no'] else '-',
                 'service_no': safe_format(row[col_mappings['service_no']]) if col_mappings['service_no'] else '-',
                 'activity_status': str(row[col_mappings['activity_status']]).strip() if col_mappings['activity_status'] and pd.notna(row[col_mappings['activity_status']]) else '미접수',
-                'activity_detail': str(row[col_mappings['activity_detail']]).strip() if col_mappings['activity_detail'] and pd.notna(row[col_mappings['activity_detail']]) else '-'
+                'activity_detail': str(row[col_mappings['activity_detail']]).strip() if col_mappings['activity_detail'] and pd.notna(row[col_mappings['activity_detail']]) else '-',
+                'modifier': str(row[col_mappings['modifier']]).strip() if col_mappings['modifier'] and pd.notna(row[col_mappings['modifier']]) else '',
+                'modified_at': str(row[col_mappings['modified_at']]).strip() if col_mappings['modified_at'] and pd.notna(row[col_mappings['modified_at']]) else '',
+                '_row_id': i,
             }
             # If target type is SE or SG and status is 방문상담, change it to 방문활동(표지판교체)
             if item['target_type'] in ['SE', 'SG'] and item['status'] == '방문상담':
                 item['status'] = '방문활동(표지판교체)'
 
-            # Override activity_status with status column for performance tracking
-            if item['status'] in ['방문상담', '방문활동(표지판교체)', '재계약']:
-                item['activity_status'] = item['status']
-            else:
-                item['activity_status'] = '미접수'
+            # activity_status now mirrors status directly so custom statuses
+            # (e.g. 활동중, 재계약거부) registered via update_activity() are reflected as-is
+            item['activity_status'] = item['status']
             processed_data.append(item)
             
         return pd.DataFrame(processed_data)
-    
+
     except Exception as e:
         return str(e)
+
+
+def update_activity(file_path, row_id, new_status, detail, modifier):
+    """Write a field activity update back into the shared db.csv so every
+    session picks it up on its next reload (real-time-ish sharing)."""
+    try:
+        raw = pd.read_csv(file_path, encoding='utf-8-sig')
+        if row_id not in raw.index:
+            return False
+
+        cols = raw.columns.tolist()
+        status_col = next((c for c in cols if '상태' in c), None)
+        activity_col = next((c for c in cols if '활동유무' in c), None)
+        detail_col = next((c for c in cols if '세부 활동내역' in c or '세부활동내역' in c), None)
+
+        if status_col:
+            raw.loc[row_id, status_col] = new_status
+        if activity_col:
+            raw.loc[row_id, activity_col] = new_status
+        if detail_col and detail:
+            raw.loc[row_id, detail_col] = detail
+
+        if '최종수정자' not in raw.columns:
+            raw['최종수정자'] = ''
+        if '최종수정일시' not in raw.columns:
+            raw['최종수정일시'] = ''
+        raw.loc[row_id, '최종수정자'] = modifier
+        raw.loc[row_id, '최종수정일시'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        raw.to_csv(file_path, index=False, encoding='utf-8-sig')
+        return True
+    except Exception:
+        return False
