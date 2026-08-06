@@ -128,6 +128,7 @@ def create_map(df, tiles='OpenStreetMap'):
             </div>
             <div style="padding: 12px; background: #0f172a; color: #f8fafc;">
                 <div style="margin-bottom: 8px;">
+                    <p style="margin: 2px 0; font-size: 11px; color: #94a3b8;">계약번호: <span style="color: #f1f5f9;">{row.get('contract_no', '-')}</span></p>
                     <p style="margin: 2px 0; font-size: 11px; color: #94a3b8;">서비스번호: <span style="color: #f1f5f9;">{row.get('service_no', '-')}</span></p>
                     <p style="margin: 2px 0; font-size: 11px; color: #94a3b8;">구역: <span style="color: #f1f5f9;">{row['zone']}</span></p>
                 </div>
@@ -138,13 +139,16 @@ def create_map(df, tiles='OpenStreetMap'):
                 <div style="margin-top: 10px; font-size: 11px; line-height: 1.4; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
                     📍 {row['address']}
                 </div>
+                <div style="margin-top: 8px; font-size: 10px; color: #38bdf8; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px;">
+                    👆 마커를 클릭하면 아래 지도 밑에 빠른 활동 등록 패널이 열립니다
+                </div>
             </div>
         </div>
         """
         folium.Marker(
             location=[row['lat'], row['lng']],
             popup=folium.Popup(popup_html, max_width=300),
-            tooltip=folium.Tooltip(f"[{row['target_type']}] {row['name']}", permanent=False),
+            tooltip=folium.Tooltip(f"[{row['target_type']}] {row['name']} | 계약번호:{row.get('contract_no', '-')}", permanent=False),
             icon=icon
         ).add_to(marker_cluster)
         

@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import io
 import os
+import re
 from core.data_handler import load_data, update_activity
 from core.map_generator import create_map, create_route_map, export_map_to_html
 
@@ -174,6 +175,7 @@ def button_group(key, options, cols_per_row=3):
 
 df = st.session_state.processed_data
 branch_order = ["중앙", "강북", "서대문", "고양", "의정부", "남양주", "강릉", "원주"]
+STATUS_OPTIONS = ["미접수", "활동중", "방문상담", "재계약", "재계약거부"]
 
 # --- Login Screen ---
 if not st.session_state.logged_in:
@@ -581,10 +583,10 @@ if df is not None:
             # Map Container Styling for a cleaner look
             st.markdown("<style>#folium-map-container { border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }</style>", unsafe_allow_html=True)
             st.markdown("<div id='folium-map-container'>", unsafe_allow_html=True)
-            # Optimize st_folium performance by setting returned_objects=[]
-            st_data = st_folium(m, width="100%", height=750, use_container_width=True, returned_objects=[])
+            # returned_objects limited to the clicked tooltip so marker clicks stay lightweight
+            st_data = st_folium(m, width="100%", height=750, use_container_width=True, returned_objects=["last_object_clicked_tooltip"])
             st.markdown("</div>", unsafe_allow_html=True)
-            
+
             st.markdown("<div class='download-btn-container'>", unsafe_allow_html=True)
             html_data = export_map_to_html(m)
             st.download_button(
@@ -594,6 +596,44 @@ if df is not None:
                 mime="text/html"
             )
             st.markdown("</div>", unsafe_allow_html=True)
+
+            # --- Quick activity registration from a clicked map marker ---
+            if not enable_routing:
+                clicked_tooltip = st_data.get("last_object_clicked_tooltip") if st_data else None
+                match = re.search(r"계약번호:(\S+)", clicked_tooltip) if clicked_tooltip else None
+                if match:
+                    clicked_contract_no = match.group(1)
+                    hit = df[df['contract_no'] == clicked_contract_no]
+                    if len(hit) > 0:
+                        target_row = hit.iloc[0]
+                        st.markdown("<hr style='border-color: rgba(255,255,255,0.1); margin: 20px 0;'>", unsafe_allow_html=True)
+                        st.markdown(f"<h4 style='font-size: 15px; color: {t['accent']};'>⚡ 빠른 활동 등록 — {target_row['name']} (계약번호 {target_row['contract_no']})</h4>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-size:13px; color:{t['text_muted']}; margin-bottom:10px;'>📍 {target_row['address']}</div>", unsafe_allow_html=True)
+
+                        qcol1, qcol2, qcol3 = st.columns([1, 2, 1])
+                        with qcol1:
+                            q_idx = STATUS_OPTIONS.index(target_row['status']) if target_row['status'] in STATUS_OPTIONS else 0
+                            q_status = st.selectbox("활동상태 변경", STATUS_OPTIONS, index=q_idx, key="map_quick_status")
+                        with qcol2:
+                            q_default_detail = "" if target_row['activity_detail'] == '-' else target_row['activity_detail']
+                            q_detail = st.text_input("세부 활동내역 (선택)", value=q_default_detail, key="map_quick_detail")
+                        with qcol3:
+                            st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+                            if st.button("💾 저장", type="primary", use_container_width=True, key="map_quick_save"):
+                                if st.session_state.role == 'admin':
+                                    modifier = "관리자"
+                                else:
+                                    u = st.session_state.user_info
+                                    modifier = f"{u['branch']}-{u['zone']}"
+                                current_dir = os.path.dirname(os.path.abspath(__file__))
+                                db_path = os.path.join(current_dir, 'db.csv')
+                                ok = update_activity(db_path, int(target_row['_row_id']), q_status, q_detail, modifier)
+                                if ok:
+                                    st.success(f"'{target_row['name']}' 상태가 '{q_status}'(으)로 저장되었습니다.")
+                                    load_and_set_data()
+                                    st.rerun()
+                                else:
+                                    st.error("저장에 실패했습니다. 데이터를 확인해주세요.")
 
     with tab_dashboard:
         st.markdown("""
@@ -790,8 +830,6 @@ if df is not None:
             </h3>
         </div>
         """, unsafe_allow_html=True)
-
-        STATUS_OPTIONS = ["미접수", "활동중", "방문상담", "재계약", "재계약거부"]
 
         if len(df_scope) == 0:
             st.warning("등록할 대상 시설이 없습니다.")
