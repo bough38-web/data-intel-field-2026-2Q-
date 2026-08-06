@@ -472,91 +472,97 @@ if df is not None:
         
     st.markdown("<br>", unsafe_allow_html=True)
     
-    tab_summary, tab_map, tab_dashboard, tab_register = st.tabs(["📈 요약 대시보드", "🗺️ 스마트 현장 지도", "📊 종합 활동 대시보드", "✏️ 활동이력 등록"])
+    if st.session_state.role == 'admin':
+        tab_summary, tab_map, tab_dashboard, tab_register = st.tabs(["📈 요약 대시보드", "🗺️ 스마트 현장 지도", "📊 종합 활동 대시보드", "✏️ 활동이력 등록"])
+    else:
+        tab_map, tab_register = st.tabs(["🗺️ 스마트 현장 지도", "✏️ 활동이력 등록"])
+        tab_summary = None
+        tab_dashboard = None
     
-    with tab_summary:
-        st.markdown("""
-        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding: 10px 15px; background: rgba(56, 189, 248, 0.05); border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">
-            <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 20px;">📈</span> 전사 활동 현황 요약
-            </h3>
-        </div>
-        """, unsafe_allow_html=True)
+    if tab_summary is not None:
+        with tab_summary:
+            st.markdown("""
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding: 10px 15px; background: rgba(56, 189, 248, 0.05); border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">
+                <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 20px;">📈</span> 전사 활동 현황 요약
+                </h3>
+            </div>
+            """, unsafe_allow_html=True)
         
-        if len(df) == 0:
-            st.warning("표시할 데이터가 없습니다.")
-        else:
-            # Calculate Progress
-            total = len(df)
-            completed = len(df[df['activity_status'] != '미접수'])
-            progress_pct = (completed / total * 100) if total > 0 else 0
+            if len(df) == 0:
+                st.warning("표시할 데이터가 없습니다.")
+            else:
+                # Calculate Progress
+                total = len(df)
+                completed = len(df[df['activity_status'] != '미접수'])
+                progress_pct = (completed / total * 100) if total > 0 else 0
             
-            sum_col1, sum_col2 = st.columns([1, 1.5])
+                sum_col1, sum_col2 = st.columns([1, 1.5])
             
-            with sum_col1:
-                # Progress Gauge/Donut
-                fig_prog = go.Figure(go.Pie(
-                    values=[completed, total-completed],
-                    labels=['진행완료', '미진행'],
-                    hole=.7,
-                    marker_colors=['#38bdf8', 'rgba(255,255,255,0.05)'],
-                    textinfo='none'
-                ))
-                fig_prog.update_layout(
-                    showlegend=False,
-                    height=250,
-                    margin=dict(l=20, r=20, t=20, b=20),
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    annotations=[dict(text=f"{progress_pct:.1f}%", x=0.5, y=0.5, font_size=32, font_family="Pretendard", font_color="#38bdf8", showarrow=False)]
-                )
-                st.plotly_chart(fig_prog, use_container_width=True)
-                st.markdown(f"<div style='text-align:center; color:#94a3b8; font-size:14px;'>전체 목표 대비 진행률</div>", unsafe_allow_html=True)
+                with sum_col1:
+                    # Progress Gauge/Donut
+                    fig_prog = go.Figure(go.Pie(
+                        values=[completed, total-completed],
+                        labels=['진행완료', '미진행'],
+                        hole=.7,
+                        marker_colors=['#38bdf8', 'rgba(255,255,255,0.05)'],
+                        textinfo='none'
+                    ))
+                    fig_prog.update_layout(
+                        showlegend=False,
+                        height=250,
+                        margin=dict(l=20, r=20, t=20, b=20),
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        annotations=[dict(text=f"{progress_pct:.1f}%", x=0.5, y=0.5, font_size=32, font_family="Pretendard", font_color="#38bdf8", showarrow=False)]
+                    )
+                    st.plotly_chart(fig_prog, use_container_width=True)
+                    st.markdown(f"<div style='text-align:center; color:#94a3b8; font-size:14px;'>전체 목표 대비 진행률</div>", unsafe_allow_html=True)
                 
-            with sum_col2:
-                # Top Performance Branches
-                branch_perf = df.groupby('branch').apply(lambda x: (len(x[x['activity_status'] != '미접수']) / len(x) * 100)).reset_index(name='pct')
-                branch_perf = branch_perf.sort_values('pct', ascending=False)
+                with sum_col2:
+                    # Top Performance Branches
+                    branch_perf = df.groupby('branch').apply(lambda x: (len(x[x['activity_status'] != '미접수']) / len(x) * 100)).reset_index(name='pct')
+                    branch_perf = branch_perf.sort_values('pct', ascending=False)
                 
-                fig_branch_rank = px.bar(
-                    branch_perf,
-                    x='pct',
-                    y='branch',
-                    orientation='h',
-                    color='pct',
-                    color_continuous_scale=['#1e293b', '#38bdf8'],
-                    labels={'pct': '진행률 (%)', 'branch': '지사'}
-                )
-                fig_branch_rank.update_layout(
-                    height=300,
-                    margin=dict(l=20, r=20, t=20, b=20),
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    font=dict(family="Pretendard", color=t['text']),
-                    coloraxis_showscale=False
-                )
-                fig_branch_rank.update_xaxes(range=[0, 100], gridcolor='rgba(255,255,255,0.05)')
-                st.plotly_chart(fig_branch_rank, use_container_width=True)
+                    fig_branch_rank = px.bar(
+                        branch_perf,
+                        x='pct',
+                        y='branch',
+                        orientation='h',
+                        color='pct',
+                        color_continuous_scale=['#1e293b', '#38bdf8'],
+                        labels={'pct': '진행률 (%)', 'branch': '지사'}
+                    )
+                    fig_branch_rank.update_layout(
+                        height=300,
+                        margin=dict(l=20, r=20, t=20, b=20),
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        font=dict(family="Pretendard", color=t['text']),
+                        coloraxis_showscale=False
+                    )
+                    fig_branch_rank.update_xaxes(range=[0, 100], gridcolor='rgba(255,255,255,0.05)')
+                    st.plotly_chart(fig_branch_rank, use_container_width=True)
 
-            st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("<br>", unsafe_allow_html=True)
             
-            # Target Type-wise Summary
-            type_sum_cols = st.columns(3)
-            for idx, t_type in enumerate(["SP", "SG", "SE"]):
-                t_df = df[df['target_type'] == t_type]
-                if len(t_df) > 0:
-                    t_total = len(t_df)
-                    t_comp = len(t_df[t_df['activity_status'] != '미접수'])
-                    t_pct = (t_comp / t_total * 100)
-                    t_color = '#ef4444' if t_type == 'SP' else '#f59e0b' if t_type == 'SG' else '#3b82f6'
+                # Target Type-wise Summary
+                type_sum_cols = st.columns(3)
+                for idx, t_type in enumerate(["SP", "SG", "SE"]):
+                    t_df = df[df['target_type'] == t_type]
+                    if len(t_df) > 0:
+                        t_total = len(t_df)
+                        t_comp = len(t_df[t_df['activity_status'] != '미접수'])
+                        t_pct = (t_comp / t_total * 100)
+                        t_color = '#ef4444' if t_type == 'SP' else '#f59e0b' if t_type == 'SG' else '#3b82f6'
                     
-                    with type_sum_cols[idx]:
-                        st.markdown(f"""
-                        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 15px; text-align: center;">
-                            <div style="font-size: 12px; color: #94a3b8; margin-bottom: 5px;">{t_type} 대상 진행률</div>
-                            <div style="font-size: 24px; font-weight: 800; color: {t_color};">{t_pct:.1f}%</div>
-                            <div style="font-size: 11px; color: #64748b;">({t_comp} / {t_total} 건)</div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        with type_sum_cols[idx]:
+                            st.markdown(f"""
+                            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 15px; text-align: center;">
+                                <div style="font-size: 12px; color: #94a3b8; margin-bottom: 5px;">{t_type} 대상 진행률</div>
+                                <div style="font-size: 24px; font-weight: 800; color: {t_color};">{t_pct:.1f}%</div>
+                                <div style="font-size: 11px; color: #64748b;">({t_comp} / {t_total} 건)</div>
+                            </div>
+                            """, unsafe_allow_html=True)
     
     with tab_map:
         # Map Toolbar with Route Toggle
@@ -666,192 +672,193 @@ if df is not None:
                                 else:
                                     st.error("저장에 실패했습니다. 데이터를 확인해주세요.")
 
-    with tab_dashboard:
-        st.markdown("""
-        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding: 12px 18px; background: rgba(56, 189, 248, 0.08); border-radius: 14px; border: 1px solid rgba(56, 189, 248, 0.2);">
-            <h3 style="margin: 0; font-size: 18px; display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 22px;">📊</span> 실시간 활동 지표 분석
-            </h3>
-        </div>
-        """, unsafe_allow_html=True)
+    if tab_dashboard is not None:
+        with tab_dashboard:
+            st.markdown("""
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding: 12px 18px; background: rgba(56, 189, 248, 0.08); border-radius: 14px; border: 1px solid rgba(56, 189, 248, 0.2);">
+                <h3 style="margin: 0; font-size: 18px; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 22px;">📊</span> 실시간 활동 지표 분석
+                </h3>
+            </div>
+            """, unsafe_allow_html=True)
 
-        if len(df) == 0:
-            st.warning("표시할 데이터가 없습니다.")
-        else:
-            # Common plotly layout adjustments for Data Intel PRO dark theme
-            plotly_bg = 'rgba(0,0,0,0)'
-            plotly_font = dict(family="Pretendard", size=12, color=t['text'])
+            if len(df) == 0:
+                st.warning("표시할 데이터가 없습니다.")
+            else:
+                # Common plotly layout adjustments for Data Intel PRO dark theme
+                plotly_bg = 'rgba(0,0,0,0)'
+                plotly_font = dict(family="Pretendard", size=12, color=t['text'])
             
-            # Define status colors
-            status_colors = {
-                '방문상담': '#38bdf8',
-                '방문활동(표지판교체)': '#38bdf8',
-                '활동중': '#f59e0b',
-                '재계약': '#34d399',
-                '재계약거부': '#f87171',
-                '미접수': '#94a3b8'
-            }
+                # Define status colors
+                status_colors = {
+                    '방문상담': '#38bdf8',
+                    '방문활동(표지판교체)': '#38bdf8',
+                    '활동중': '#f59e0b',
+                    '재계약': '#34d399',
+                    '재계약거부': '#f87171',
+                    '미접수': '#94a3b8'
+                }
             
-            # --- Top Chart: Target Type vs Activity Status ---
-            if 'activity_status' not in df.columns:
-                df['activity_status'] = '미접수'
+                # --- Top Chart: Target Type vs Activity Status ---
+                if 'activity_status' not in df.columns:
+                    df['activity_status'] = '미접수'
             
-            df_type_summary = df.groupby(['target_type', 'activity_status']).size().reset_index(name='count')
-            type_order = ["SP", "SG", "SE"]
+                df_type_summary = df.groupby(['target_type', 'activity_status']).size().reset_index(name='count')
+                type_order = ["SP", "SG", "SE"]
             
-            fig_top = px.bar(
-                df_type_summary,
-                x='target_type',
-                y='count',
-                color='activity_status',
-                barmode='group',
-                category_orders={'target_type': type_order},
-                color_discrete_map=status_colors,
-                labels={'target_type': '활동대상구분', 'count': '건수', 'activity_status': '활동상태'}
-            )
-            fig_top.update_layout(
-                plot_bgcolor=plotly_bg, paper_bgcolor=plotly_bg, font=plotly_font,
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                margin=dict(l=20, r=20, t=40, b=20),
-                height=300
-            )
-            fig_top.update_yaxes(gridcolor='rgba(255,255,255,0.1)', title='')
-            fig_top.update_xaxes(title='')
-            
-            st.markdown("<h4 style='font-size: 15px; color: #38bdf8; margin-bottom: 15px; border-left: 4px solid #38bdf8; padding-left: 10px;'>1. 대상군별 활동 요약 (SP / SG / SE)</h4>", unsafe_allow_html=True)
-            st.plotly_chart(fig_top, use_container_width=True)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            st.markdown("<br><h4 style='font-size: 15px; color: #38bdf8; margin-bottom: 15px; border-left: 4px solid #38bdf8; padding-left: 10px;'>2. 지사별 성과 분석</h4>", unsafe_allow_html=True)
-            
-            # --- Branch-wise Bar Chart ---
-            df_branch_summary = df.groupby(['branch', 'activity_status']).size().reset_index(name='count')
-            fig_branch = px.bar(
-                df_branch_summary,
-                x='branch',
-                y='count',
-                color='activity_status',
-                barmode='group',
-                color_discrete_map=status_colors,
-                labels={'branch': '지사', 'count': '건수', 'activity_status': '활동상태'}
-            )
-            fig_branch.update_layout(
-                plot_bgcolor=plotly_bg, paper_bgcolor=plotly_bg, font=plotly_font,
-                height=350, margin=dict(l=20, r=20, t=20, b=20),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-            )
-            
-            col_b1, col_b2 = st.columns([1, 1])
-            with col_b1:
-                st.markdown("<p style='font-size: 13px; color: #94a3b8; margin-bottom: 5px; text-align:center;'>지사별 활동 건수 (Status별)</p>", unsafe_allow_html=True)
-                st.plotly_chart(fig_branch, use_container_width=True)
-            
-            with col_b2:
-                st.markdown("<p style='font-size: 13px; color: #94a3b8; margin-bottom: 5px; text-align:center;'>지사별 활동 완료율 (%)</p>", unsafe_allow_html=True)
-                # Calculate completion rate per branch
-                branch_rates = df.groupby('branch').apply(lambda x: (len(x[x['activity_status'] != '미접수']) / len(x) * 100)).reset_index(name='rate')
-                fig_rate = px.bar(
-                    branch_rates,
-                    x='branch',
-                    y='rate',
-                    color='rate',
-                    color_continuous_scale=['#1e293b', '#38bdf8'],
-                    labels={'branch': '지사', 'rate': '완료율 (%)'}
+                fig_top = px.bar(
+                    df_type_summary,
+                    x='target_type',
+                    y='count',
+                    color='activity_status',
+                    barmode='group',
+                    category_orders={'target_type': type_order},
+                    color_discrete_map=status_colors,
+                    labels={'target_type': '활동대상구분', 'count': '건수', 'activity_status': '활동상태'}
                 )
-                fig_rate.update_layout(
+                fig_top.update_layout(
+                    plot_bgcolor=plotly_bg, paper_bgcolor=plotly_bg, font=plotly_font,
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                    margin=dict(l=20, r=20, t=40, b=20),
+                    height=300
+                )
+                fig_top.update_yaxes(gridcolor='rgba(255,255,255,0.1)', title='')
+                fig_top.update_xaxes(title='')
+            
+                st.markdown("<h4 style='font-size: 15px; color: #38bdf8; margin-bottom: 15px; border-left: 4px solid #38bdf8; padding-left: 10px;'>1. 대상군별 활동 요약 (SP / SG / SE)</h4>", unsafe_allow_html=True)
+                st.plotly_chart(fig_top, use_container_width=True)
+            
+                st.markdown("<br>", unsafe_allow_html=True)
+            
+                st.markdown("<br><h4 style='font-size: 15px; color: #38bdf8; margin-bottom: 15px; border-left: 4px solid #38bdf8; padding-left: 10px;'>2. 지사별 성과 분석</h4>", unsafe_allow_html=True)
+            
+                # --- Branch-wise Bar Chart ---
+                df_branch_summary = df.groupby(['branch', 'activity_status']).size().reset_index(name='count')
+                fig_branch = px.bar(
+                    df_branch_summary,
+                    x='branch',
+                    y='count',
+                    color='activity_status',
+                    barmode='group',
+                    color_discrete_map=status_colors,
+                    labels={'branch': '지사', 'count': '건수', 'activity_status': '활동상태'}
+                )
+                fig_branch.update_layout(
                     plot_bgcolor=plotly_bg, paper_bgcolor=plotly_bg, font=plotly_font,
                     height=350, margin=dict(l=20, r=20, t=20, b=20),
-                    coloraxis_showscale=False
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
                 )
-                fig_rate.update_yaxes(range=[0, 100], gridcolor='rgba(255,255,255,0.1)', title='')
-                st.plotly_chart(fig_rate, use_container_width=True)
+            
+                col_b1, col_b2 = st.columns([1, 1])
+                with col_b1:
+                    st.markdown("<p style='font-size: 13px; color: #94a3b8; margin-bottom: 5px; text-align:center;'>지사별 활동 건수 (Status별)</p>", unsafe_allow_html=True)
+                    st.plotly_chart(fig_branch, use_container_width=True)
+            
+                with col_b2:
+                    st.markdown("<p style='font-size: 13px; color: #94a3b8; margin-bottom: 5px; text-align:center;'>지사별 활동 완료율 (%)</p>", unsafe_allow_html=True)
+                    # Calculate completion rate per branch
+                    branch_rates = df.groupby('branch').apply(lambda x: (len(x[x['activity_status'] != '미접수']) / len(x) * 100)).reset_index(name='rate')
+                    fig_rate = px.bar(
+                        branch_rates,
+                        x='branch',
+                        y='rate',
+                        color='rate',
+                        color_continuous_scale=['#1e293b', '#38bdf8'],
+                        labels={'branch': '지사', 'rate': '완료율 (%)'}
+                    )
+                    fig_rate.update_layout(
+                        plot_bgcolor=plotly_bg, paper_bgcolor=plotly_bg, font=plotly_font,
+                        height=350, margin=dict(l=20, r=20, t=20, b=20),
+                        coloraxis_showscale=False
+                    )
+                    fig_rate.update_yaxes(range=[0, 100], gridcolor='rgba(255,255,255,0.1)', title='')
+                    st.plotly_chart(fig_rate, use_container_width=True)
 
-            # --- Branch vs Target Type Matrix Calculation ---
-            df['is_completed'] = df['activity_status'].apply(lambda x: 1 if x != '미접수' else 0)
-            pivot_df = df.pivot_table(
-                index='branch', 
-                columns='target_type', 
-                values='is_completed', 
-                aggfunc=['count', 'sum'],
-                fill_value=0
-            )
+                # --- Branch vs Target Type Matrix Calculation ---
+                df['is_completed'] = df['activity_status'].apply(lambda x: 1 if x != '미접수' else 0)
+                pivot_df = df.pivot_table(
+                    index='branch', 
+                    columns='target_type', 
+                    values='is_completed', 
+                    aggfunc=['count', 'sum'],
+                    fill_value=0
+                )
             
-            pivot_display = pd.DataFrame()
-            for t_type in ["SP", "SG", "SE"]:
-                if t_type in pivot_df['count'].columns:
-                    pivot_display[f'{t_type} (전체)'] = pivot_df['count'][t_type]
-                    pivot_display[f'{t_type} (완료)'] = pivot_df['sum'][t_type]
-                    pivot_display[f'{t_type} (%)'] = (pivot_df['sum'][t_type] / pivot_df['count'][t_type] * 100).round(1).astype(str) + '%'
+                pivot_display = pd.DataFrame()
+                for t_type in ["SP", "SG", "SE"]:
+                    if t_type in pivot_df['count'].columns:
+                        pivot_display[f'{t_type} (전체)'] = pivot_df['count'][t_type]
+                        pivot_display[f'{t_type} (완료)'] = pivot_df['sum'][t_type]
+                        pivot_display[f'{t_type} (%)'] = (pivot_df['sum'][t_type] / pivot_df['count'][t_type] * 100).round(1).astype(str) + '%'
 
-            # Keep the pivot table as well for numerical details
-            st.markdown("<p style='font-size: 13px; color: #94a3b8; margin-bottom: 10px;'>지사별 대상군 세부 현황</p>", unsafe_allow_html=True)
-            st.dataframe(pivot_display, use_container_width=True)
+                # Keep the pivot table as well for numerical details
+                st.markdown("<p style='font-size: 13px; color: #94a3b8; margin-bottom: 10px;'>지사별 대상군 세부 현황</p>", unsafe_allow_html=True)
+                st.dataframe(pivot_display, use_container_width=True)
             
-            st.markdown("<hr style='border-color: rgba(255,255,255,0.1); margin: 30px 0;'>", unsafe_allow_html=True)
+                st.markdown("<hr style='border-color: rgba(255,255,255,0.1); margin: 30px 0;'>", unsafe_allow_html=True)
             
-            st.markdown("<h4 style='font-size: 15px; color: #38bdf8; margin-bottom: 15px; border-left: 4px solid #38bdf8; padding-left: 10px;'>3. 구역별 상세 진행 현황</h4>", unsafe_allow_html=True)
+                st.markdown("<h4 style='font-size: 15px; color: #38bdf8; margin-bottom: 15px; border-left: 4px solid #38bdf8; padding-left: 10px;'>3. 구역별 상세 진행 현황</h4>", unsafe_allow_html=True)
             
-            # --- Middle Chart: Branch/Zone vs Activity Status ---
-            # Group by branch, zone, activity_status
-            df_bz_summary = df.groupby(['branch', 'zone', 'activity_status']).size().reset_index(name='count')
-            df_bz_summary['branch_zone'] = df_bz_summary['branch'] + " - " + df_bz_summary['zone']
+                # --- Middle Chart: Branch/Zone vs Activity Status ---
+                # Group by branch, zone, activity_status
+                df_bz_summary = df.groupby(['branch', 'zone', 'activity_status']).size().reset_index(name='count')
+                df_bz_summary['branch_zone'] = df_bz_summary['branch'] + " - " + df_bz_summary['zone']
             
-            # Sort to keep the standard order
-            branch_order_dict = {b: i for i, b in enumerate(["중앙", "강북", "서대문", "고양", "의정부", "남양주", "강릉", "원주"])}
-            df_bz_summary['branch_order'] = df_bz_summary['branch'].map(lambda x: branch_order_dict.get(x, 99))
-            df_bz_summary = df_bz_summary.sort_values(['branch_order', 'zone'])
+                # Sort to keep the standard order
+                branch_order_dict = {b: i for i, b in enumerate(["중앙", "강북", "서대문", "고양", "의정부", "남양주", "강릉", "원주"])}
+                df_bz_summary['branch_order'] = df_bz_summary['branch'].map(lambda x: branch_order_dict.get(x, 99))
+                df_bz_summary = df_bz_summary.sort_values(['branch_order', 'zone'])
             
-            fig_mid = px.bar(
-                df_bz_summary,
-                x='branch_zone',
-                y='count',
-                color='activity_status',
-                barmode='stack',
-                color_discrete_map=status_colors,
-                labels={'branch_zone': '지사 및 구역', 'count': '건수', 'activity_status': '활동상태'}
-            )
-            fig_mid.update_layout(
-                plot_bgcolor=plotly_bg, paper_bgcolor=plotly_bg, font=plotly_font,
-                showlegend=False,
-                margin=dict(l=20, r=20, t=20, b=80),
-                height=400,
-                xaxis_tickangle=-45
-            )
-            fig_mid.update_yaxes(gridcolor='rgba(255,255,255,0.1)', title='')
-            fig_mid.update_xaxes(title='')
+                fig_mid = px.bar(
+                    df_bz_summary,
+                    x='branch_zone',
+                    y='count',
+                    color='activity_status',
+                    barmode='stack',
+                    color_discrete_map=status_colors,
+                    labels={'branch_zone': '지사 및 구역', 'count': '건수', 'activity_status': '활동상태'}
+                )
+                fig_mid.update_layout(
+                    plot_bgcolor=plotly_bg, paper_bgcolor=plotly_bg, font=plotly_font,
+                    showlegend=False,
+                    margin=dict(l=20, r=20, t=20, b=80),
+                    height=400,
+                    xaxis_tickangle=-45
+                )
+                fig_mid.update_yaxes(gridcolor='rgba(255,255,255,0.1)', title='')
+                fig_mid.update_xaxes(title='')
             
-            st.plotly_chart(fig_mid, use_container_width=True)
+                st.plotly_chart(fig_mid, use_container_width=True)
             
-            st.markdown("<hr style='border-color: rgba(255,255,255,0.1); margin: 30px 0;'>", unsafe_allow_html=True)
+                st.markdown("<hr style='border-color: rgba(255,255,255,0.1); margin: 30px 0;'>", unsafe_allow_html=True)
             
-            # --- Bottom: Detailed Table ---
-            st.markdown("""
-            <h4 style="margin: 0 0 15px 0; font-size: 15px; display: flex; align-items: center; gap: 8px; color: #38bdf8;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                세부내역
-            </h4>
-            """, unsafe_allow_html=True)
+                # --- Bottom: Detailed Table ---
+                st.markdown("""
+                <h4 style="margin: 0 0 15px 0; font-size: 15px; display: flex; align-items: center; gap: 8px; color: #38bdf8;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    세부내역
+                </h4>
+                """, unsafe_allow_html=True)
             
-            display_cols = ['contract_no', 'service_no', 'branch', 'target_type', 'zone', 'name', 'address', 'activity_status']
-            if 'activity_detail' in df.columns:
-                display_cols.append('activity_detail')
+                display_cols = ['contract_no', 'service_no', 'branch', 'target_type', 'zone', 'name', 'address', 'activity_status']
+                if 'activity_detail' in df.columns:
+                    display_cols.append('activity_detail')
                 
-            col_names = {
-                'contract_no': '계약번호', 'service_no': '서비스번호', 'branch': '지사',
-                'target_type': '활동대상구분', 'zone': '구역', 'name': '상호',
-                'address': '설치주소', 'activity_status': '활동유무(O/X)', 'activity_detail': '세부 활동내역'
-            }
+                col_names = {
+                    'contract_no': '계약번호', 'service_no': '서비스번호', 'branch': '지사',
+                    'target_type': '활동대상구분', 'zone': '구역', 'name': '상호',
+                    'address': '설치주소', 'activity_status': '활동유무(O/X)', 'activity_detail': '세부 활동내역'
+                }
             
-            df_display = df[display_cols].rename(columns=col_names).copy()
+                df_display = df[display_cols].rename(columns=col_names).copy()
             
-            # Use st.dataframe for an interactive table
-            st.dataframe(
-                df_display,
-                use_container_width=True,
-                hide_index=True,
-                height=300
-            )
+                # Use st.dataframe for an interactive table
+                st.dataframe(
+                    df_display,
+                    use_container_width=True,
+                    hide_index=True,
+                    height=300
+                )
 
     with tab_register:
         st.markdown("""
@@ -861,6 +868,25 @@ if df is not None:
             </h3>
         </div>
         """, unsafe_allow_html=True)
+
+        if st.session_state.role == 'admin':
+            excel_cols = ['contract_no', 'service_no', 'branch', 'target_type', 'zone', 'name', 'address', 'status', 'activity_detail', 'modifier', 'modified_at']
+            excel_col_names = {
+                'contract_no': '계약번호', 'service_no': '서비스번호', 'branch': '지사',
+                'target_type': '활동대상구분', 'zone': '구역', 'name': '상호', 'address': '설치주소',
+                'status': '활동상태', 'activity_detail': '세부 활동내역', 'modifier': '수정자', 'modified_at': '최종수정일시'
+            }
+            excel_df = df_scope[excel_cols].rename(columns=excel_col_names)
+            excel_buffer = io.BytesIO()
+            excel_df.to_excel(excel_buffer, index=False, engine='openpyxl', sheet_name='활동이력')
+            st.download_button(
+                label="📥 활동이력 엑셀 다운로드",
+                data=excel_buffer.getvalue(),
+                file_name="2Q_활동이력.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="reg_excel_download"
+            )
+            st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
         if len(df_scope) == 0:
             st.warning("등록할 대상 시설이 없습니다.")
