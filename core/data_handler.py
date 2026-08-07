@@ -2,6 +2,15 @@ import pandas as pd
 import re
 import os
 from datetime import datetime
+from zoneinfo import ZoneInfo
+
+KST = ZoneInfo("Asia/Seoul")
+
+def now_kst():
+    """Cloud hosts (e.g. Streamlit Community Cloud) run in UTC by default,
+    so timestamps must be pinned to Asia/Seoul explicitly rather than
+    relying on datetime.now()'s naive local time."""
+    return datetime.now(KST)
 
 def mask_name(name):
     if not isinstance(name, str):
@@ -152,7 +161,7 @@ def update_activity(file_path, row_id, new_status, detail, modifier):
         if '최종수정일시' not in raw.columns:
             raw['최종수정일시'] = ''
         raw.loc[row_id, '최종수정자'] = modifier
-        raw.loc[row_id, '최종수정일시'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        raw.loc[row_id, '최종수정일시'] = now_kst().strftime('%Y-%m-%d %H:%M:%S')
 
         raw.to_csv(file_path, index=False, encoding='utf-8-sig')
         return True
@@ -164,7 +173,7 @@ def log_login(log_path, login_type, branch='-', target_type='-', zone='-'):
     """Append one row to the shared login history log (created on first use)."""
     try:
         entry = pd.DataFrame([{
-            '로그인시각': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            '로그인시각': now_kst().strftime('%Y-%m-%d %H:%M:%S'),
             '유형': login_type,
             '지사': branch,
             '활동대상구분': target_type,
