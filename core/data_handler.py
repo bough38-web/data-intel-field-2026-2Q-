@@ -149,6 +149,14 @@ def update_activity(file_path, row_id, new_status, detail, modifier):
         activity_col = next((c for c in cols if '활동유무' in c), None)
         detail_col = next((c for c in cols if '세부 활동내역' in c or '세부활동내역' in c), None)
 
+        # A column that's entirely blank (e.g. a fresh data export with no
+        # activity yet) gets read in as float64 (all-NaN), which raises a
+        # TypeError the moment a status string is written into it. Force
+        # these columns to plain object dtype first so the write always works.
+        for col in (status_col, activity_col, detail_col):
+            if col and raw[col].dtype != object:
+                raw[col] = raw[col].astype(object)
+
         if status_col:
             raw.loc[row_id, status_col] = new_status
         if activity_col:
